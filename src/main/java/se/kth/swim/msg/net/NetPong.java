@@ -16,25 +16,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
+package se.kth.swim.msg.net;
 
-package se.kth.swim.msg;
+import se.kth.swim.msg.Pong;
+import se.sics.kompics.network.Address;
+import se.sics.kompics.network.Header;
+import se.sics.p2ptoolbox.util.network.NatedAddress;
+
+import java.util.Set;
 
 /**
- * @author Alex Ormenisan <aaor@sics.se>
+ * Created by Mattias on 2015-04-11.
  */
-public class Ping {
+public class NetPong extends NetMsg<Pong> {
 
-    private int pingNr;
-
-    public Ping(int pingNr) {
-        this.pingNr = pingNr;
+    public NetPong(NatedAddress src, NatedAddress dst, Set<NatedAddress> aliveNodes, Set<NatedAddress> suspectedNodes, Set<NatedAddress> deadNodes, int pingNr) {
+        super(src, dst, new Pong(aliveNodes, suspectedNodes, deadNodes, pingNr));
     }
 
-    public int getPingNr() {
-        return pingNr;
+    private NetPong(Header<NatedAddress> header, Pong content) {
+        super(header, content);
     }
 
-    public void setPingNr(int pingNr) {
-        this.pingNr = pingNr;
+    @Override
+    public NetMsg copyMessage(Header<NatedAddress> newHeader) {
+        return new NetPong(newHeader, getContent());
     }
+
 }

@@ -16,25 +16,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
+package se.kth.swim.msg.net;
 
-package se.kth.swim.msg;
+import se.kth.swim.msg.Alive;
+import se.sics.kompics.network.Header;
+import se.sics.p2ptoolbox.util.network.NatedAddress;
 
 /**
- * @author Alex Ormenisan <aaor@sics.se>
+ * Created by Mattias on 2015-04-11.
  */
-public class Ping {
+public class NetAlive extends NetMsg<Alive> {
 
-    private int pingNr;
-
-    public Ping(int pingNr) {
-        this.pingNr = pingNr;
+    public NetAlive(NatedAddress src, NatedAddress dst) {
+        super(src, dst, new Alive());
     }
 
-    public int getPingNr() {
-        return pingNr;
+    private NetAlive(Header<NatedAddress> header, Alive content) {
+        super(header, content);
     }
 
-    public void setPingNr(int pingNr) {
-        this.pingNr = pingNr;
+    @Override
+    public NetMsg copyMessage(Header<NatedAddress> newHeader) {
+        return new NetAlive(newHeader, getContent());
     }
+
 }
