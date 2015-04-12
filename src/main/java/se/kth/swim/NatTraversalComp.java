@@ -33,6 +33,9 @@ import se.sics.kompics.Start;
 import se.sics.kompics.Stop;
 import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
+import se.sics.kompics.timer.ScheduleTimeout;
+import se.sics.kompics.timer.Timeout;
+import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
 import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
@@ -43,9 +46,11 @@ import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
  */
 public class NatTraversalComp extends ComponentDefinition {
 
+    private static final int MESSAGE_DELAY = 10;
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
     private Negative<Network> local = provides(Network.class);
     private Positive<Network> network = requires(Network.class);
+    private Positive<Timer> timer = requires(Timer.class);
 
     private final NatedAddress selfAddress;
     private final Random rand;
@@ -58,6 +63,7 @@ public class NatTraversalComp extends ComponentDefinition {
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
+      //  subscribe(handleDelay, network);
         subscribe(handleOutgoingMsg, local);
     }
 
@@ -78,10 +84,22 @@ public class NatTraversalComp extends ComponentDefinition {
 
     };
 
+    private Handler<NetMsg<Object>> handleDelay = new Handler<NetMsg<Object>>() {
+        @Override
+        public void handle(NetMsg<Object> objectNetMsg) {
+            log.trace("{} delaying a message:{}", new Object[]{selfAddress.getId(), objectNetMsg});
+            ScheduleTimeout scheduleTimeout = new ScheduleTimeout(MESSAGE_DELAY);
+            DelayedMessage suspectedTimeout = new DelayedMessage(scheduleTimeout,objectNetMsg );
+            scheduleTimeout.setTimeoutEvent(suspectedTimeout);
+            trigger(scheduleTimeout, timer);
+        }
+    };
+
     private Handler<NetMsg<Object>> handleIncomingMsg = new Handler<NetMsg<Object>>() {
 
         @Override
         public void handle(NetMsg<Object> msg) {
+     //       NetMsg<Object> msg = message.getMessage();
             log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
             Header<NatedAddress> header = msg.getHeader();
             if (header instanceof SourceHeader) {
@@ -158,6 +176,21 @@ public class NatTraversalComp extends ComponentDefinition {
         public NatTraversalInit(NatedAddress selfAddress, long seed) {
             this.selfAddress = selfAddress;
             this.seed = seed;
+        }
+    }
+    public static class DelayedMessage extends Timeout{
+        NetMsg<Object> message;
+        public DelayedMessage(ScheduleTimeout request, NetMsg<Object> message) {
+            super(request);
+            this.message = message;
+        }
+
+        public NetMsg<Object> getMessage() {
+            return message;
+        }
+
+        public void setMessage(NetMsg<Object> message) {
+            this.message = message;
         }
     }
 }

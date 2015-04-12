@@ -1,7 +1,9 @@
 package se.kth.swim.msg;
 
+import se.kth.swim.NodeInfo;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
+import java.util.HashMap;
 import java.util.Set;
 
 /**
@@ -9,39 +11,39 @@ import java.util.Set;
  */
 public class Pong {
 
-    private Set<NatedAddress> aliveNodes;
-    private Set<NatedAddress> suspectedNodes;
-    private Set<NatedAddress> deadNodes;
+    private HashMap<NatedAddress, Integer> aliveNodes;
+    private HashMap<NatedAddress, Integer> suspectedNodes;
+    private HashMap<NatedAddress, Integer> deadNodes;
     private int pingNr;
 
-    public Pong(Set<NatedAddress> aliveNodes, Set<NatedAddress> suspectedNodes, Set<NatedAddress> deadNodes, int pingNr) {
+    public Pong(HashMap<NatedAddress, Integer> aliveNodes, HashMap<NatedAddress, Integer> suspectedNodes, HashMap<NatedAddress, Integer> deadNodes, int pingNr) {
         this.aliveNodes = aliveNodes;
         this.suspectedNodes = suspectedNodes;
         this.deadNodes = deadNodes;
         this.pingNr = pingNr;
     }
 
-    public Set<NatedAddress> getAliveNodes() {
+    public HashMap<NatedAddress, Integer> getAliveNodes() {
         return aliveNodes;
     }
 
-    public void setAliveNodes(Set<NatedAddress> aliveNodes) {
+    public void setAliveNodes(HashMap<NatedAddress, Integer> aliveNodes) {
         this.aliveNodes = aliveNodes;
     }
 
-    public Set<NatedAddress> getSuspectedNodes() {
+    public HashMap<NatedAddress, Integer> getSuspectedNodes() {
         return suspectedNodes;
     }
 
-    public void setSuspectedNodes(Set<NatedAddress> suspectedNodes) {
+    public void setSuspectedNodes(HashMap<NatedAddress, Integer> suspectedNodes) {
         this.suspectedNodes = suspectedNodes;
     }
 
-    public Set<NatedAddress> getDeadNodes() {
+    public HashMap<NatedAddress, Integer> getDeadNodes() {
         return deadNodes;
     }
 
-    public void setDeadNodes(Set<NatedAddress> deadNodes) {
+    public void setDeadNodes(HashMap<NatedAddress, Integer> deadNodes) {
         this.deadNodes = deadNodes;
     }
 

@@ -27,8 +27,8 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
  */
 public class NetAlive extends NetMsg<Alive> {
 
-    public NetAlive(NatedAddress src, NatedAddress dst) {
-        super(src, dst, new Alive());
+    public NetAlive(NatedAddress src, NatedAddress dst, int counter) {
+        super(src, dst, new Alive(counter));
     }
 
     private NetAlive(Header<NatedAddress> header, Alive content) {

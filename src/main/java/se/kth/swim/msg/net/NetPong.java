@@ -18,11 +18,13 @@
  */
 package se.kth.swim.msg.net;
 
+import se.kth.swim.NodeInfo;
 import se.kth.swim.msg.Pong;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Header;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
+import java.util.HashMap;
 import java.util.Set;
 
 /**
@@ -30,7 +32,7 @@ import java.util.Set;
  */
 public class NetPong extends NetMsg<Pong> {
 
-    public NetPong(NatedAddress src, NatedAddress dst, Set<NatedAddress> aliveNodes, Set<NatedAddress> suspectedNodes, Set<NatedAddress> deadNodes, int pingNr) {
+    public NetPong(NatedAddress src, NatedAddress dst,  HashMap<NatedAddress, Integer> aliveNodes, HashMap<NatedAddress, Integer> suspectedNodes, HashMap<NatedAddress, Integer> deadNodes, int pingNr) {
         super(src, dst, new Pong(aliveNodes, suspectedNodes, deadNodes, pingNr));
     }
 

@@ -31,6 +31,7 @@ import se.sics.kompics.timer.*;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
+import javax.xml.soap.Node;
 import java.util.*;
 
 /**
@@ -39,7 +40,7 @@ import java.util.*;
 @SuppressWarnings("FieldCanBeLocal")
 public class SwimComp extends ComponentDefinition {
 
-    private static final int PING_TIMEOUT = 10;
+    private static final int PING_TIMEOUT = 1000;
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
     private Positive<Network> network = requires(Network.class);
@@ -54,10 +55,12 @@ public class SwimComp extends ComponentDefinition {
 
     private int sentPings = 0;
     private int receivedPings = 0;
+    private int incarnationCounter = 0;
 
-    private Set<NatedAddress> aliveNodes;
-    private Set<NatedAddress> suspectedNodes;
-    private Set<NatedAddress> deadNodes;
+
+    private HashMap<NatedAddress, Integer> aliveNodes;
+    private HashMap<NatedAddress, Integer> suspectedNodes;
+    private HashMap<NatedAddress, Integer> deadNodes;
 
     private List<Integer> sentPingNrs;
 
@@ -67,9 +70,9 @@ public class SwimComp extends ComponentDefinition {
         this.bootstrapNodes = init.bootstrapNodes;
         this.aggregatorAddress = init.aggregatorAddress;
 
-        aliveNodes = new HashSet<NatedAddress>();
-        suspectedNodes = new HashSet<NatedAddress>();
-        deadNodes = new HashSet<NatedAddress>();
+        aliveNodes = new HashMap<NatedAddress, Integer>();
+        suspectedNodes = new HashMap<NatedAddress, Integer>();
+        deadNodes = new HashMap<NatedAddress, Integer>();
         sentPingNrs = new ArrayList<Integer>();
 
         subscribe(handleStart, control);
@@ -118,23 +121,27 @@ public class SwimComp extends ComponentDefinition {
         public void handle(NetPong event) {
             log.info("{} received pong from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
 
-            aliveNodes.add(event.getSource());
-            aliveNodes.addAll(event.getContent().getAliveNodes());
+            if(!deadNodes.containsKey(event.getSource())) {
+                aliveNodes.put(event.getSource(), 0);
+            }
+            aliveNodes.putAll(event.getContent().getAliveNodes());
             aliveNodes.remove(selfAddress);
 
             sentPingNrs.remove(Integer.valueOf(event.getContent().getPingNr()));
 
-            boolean removeSuspectedNodeSucceeded = suspectedNodes.remove(event.getSource());
-            boolean removeDeadNodeSucceeded = deadNodes.remove(event.getSource());
-
+            boolean removeSuspectedNodeSucceeded = suspectedNodes.containsKey(event.getSource());
+            boolean removeDeadNodeSucceeded = deadNodes.containsKey(event.getSource());
+            suspectedNodes.remove(event.getSource());
+            deadNodes.remove(event.getSource());
             if (removeSuspectedNodeSucceeded || removeDeadNodeSucceeded) {
                 log.info("{} Restored suspected node: {}", new Object[]{selfAddress.getId(), event.getSource()});
             }
 
-            if (event.getContent().getSuspectedNodes().contains(selfAddress) || event.getContent().getDeadNodes().contains(selfAddress)) {
+            if (event.getContent().getSuspectedNodes().containsKey(selfAddress) || event.getContent().getDeadNodes().containsKey(selfAddress)) {
                 log.info("{} Found self in suspected or dead list from node: {}", new Object[]{selfAddress.getId(), event.getSource()});
-                for (NatedAddress address : aliveNodes) {
-                    trigger(new NetAlive(selfAddress, address), network);
+                incarnationCounter++;
+                for (NatedAddress address : aliveNodes.keySet()) {
+                    trigger(new NetAlive(selfAddress, address, incarnationCounter), network);
                 }
             }
 
@@ -150,7 +157,7 @@ public class SwimComp extends ComponentDefinition {
             log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             receivedPings++;
 
-            aliveNodes.add(event.getSource());
+            aliveNodes.put(event.getSource(), 0);
 
             log.info("{} sending pong to :{}", new Object[]{selfAddress.getId(), event.getSource()});
 
@@ -166,9 +173,18 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(NetAlive netAlive) {
             log.info("{} Restored suspected node by alive message from: {}", new Object[]{selfAddress.getId(), netAlive.getSource()});
-            aliveNodes.add(netAlive.getSource());
-            suspectedNodes.remove(netAlive.getSource());
-            deadNodes.remove(netAlive.getSource());
+
+            if(!deadNodes.containsKey(netAlive.getSource())) {
+                int currentSuspectCounter = suspectedNodes.get(netAlive.getSource());
+                if (currentSuspectCounter < netAlive.getContent().getIncarnationCounter()) {
+                    suspectedNodes.remove(netAlive.getSource());
+                }
+                int currentAliveCounter = aliveNodes.get(netAlive.getSource());
+                if (currentAliveCounter < netAlive.getContent().getIncarnationCounter()) {
+                    aliveNodes.remove(netAlive.getSource());
+                    aliveNodes.put(netAlive.getSource(), netAlive.getContent().getIncarnationCounter());
+                }
+            }
         }
     };
 
@@ -211,7 +227,7 @@ public class SwimComp extends ComponentDefinition {
             if (sentPingNrs.contains(pongTimeout.getPingNr())) {
                 log.info("{} Suspected node: {}", new Object[]{selfAddress.getId(), pongTimeout.getAddress()});
 
-                suspectedNodes.add(pongTimeout.getAddress());
+                suspectedNodes.put(pongTimeout.getAddress(), 0);
 
                 ScheduleTimeout scheduleTimeout = new ScheduleTimeout(PING_TIMEOUT);
                 SuspectedTimeout suspectedTimeout = new SuspectedTimeout(scheduleTimeout, pongTimeout.getAddress());
@@ -229,12 +245,12 @@ public class SwimComp extends ComponentDefinition {
         public void handle(SuspectedTimeout suspectedTimeout) {
             log.info("{} Suspected node timeout: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
-            if (suspectedNodes.contains(suspectedTimeout.getAddress())) {
+            if (suspectedNodes.containsKey(suspectedTimeout.getAddress())) {
                 log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
                 aliveNodes.remove(suspectedTimeout.getAddress());
                 suspectedNodes.remove(suspectedTimeout.getAddress());
-                deadNodes.add(suspectedTimeout.getAddress());
+                deadNodes.put( suspectedTimeout.getAddress(), 0 );
 
                 log.info("{} Alive nodes: {}", new Object[]{selfAddress.getId(), aliveNodes});
             }

@@ -43,6 +43,7 @@ import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation1;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.ConstantDistribution;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.GenIntSequentialDistribution;
+import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.IntegerUniformDistribution;
 import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
@@ -53,6 +54,7 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
  */
 public class SwimScenario {
 
+    private static final int NROFNODES = 10;
     private static long seed;
     private static InetAddress localHost;
 
@@ -252,7 +254,12 @@ public class SwimScenario {
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(3, startNodeOp, new GenIntSequentialDistribution(new Integer[]{10, 13, 17}));
+                        Integer [] nodes = new Integer[NROFNODES];
+                        for(int i = 0; i < NROFNODES; i++){
+                            nodes[i] = i+10;
+                        }
+
+                        raise(NROFNODES, startNodeOp, new GenIntSequentialDistribution(nodes));
                     }
                 };
 
