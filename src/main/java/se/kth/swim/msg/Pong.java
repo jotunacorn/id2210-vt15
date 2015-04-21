@@ -1,49 +1,47 @@
 package se.kth.swim.msg;
 
-import se.kth.swim.NodeInfo;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
-import java.util.HashMap;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Created by Mattias on 2015-04-11.
  */
 public class Pong {
 
-    private HashMap<NatedAddress, Integer> aliveNodes;
-    private HashMap<NatedAddress, Integer> suspectedNodes;
-    private HashMap<NatedAddress, Integer> deadNodes;
+    private Map<NatedAddress, Integer> newNodes;
+    private Map<NatedAddress, Integer> suspectedNodes;
+    private Map<NatedAddress, Integer> deadNodes;
     private int pingNr;
 
-    public Pong(HashMap<NatedAddress, Integer> aliveNodes, HashMap<NatedAddress, Integer> suspectedNodes, HashMap<NatedAddress, Integer> deadNodes, int pingNr) {
-        this.aliveNodes = aliveNodes;
+    public Pong(Map<NatedAddress, Integer> newNodes, Map<NatedAddress, Integer> suspectedNodes, Map<NatedAddress, Integer> deadNodes, int pingNr) {
+        this.newNodes = newNodes;
         this.suspectedNodes = suspectedNodes;
         this.deadNodes = deadNodes;
         this.pingNr = pingNr;
     }
 
-    public HashMap<NatedAddress, Integer> getAliveNodes() {
-        return aliveNodes;
+    public Map<NatedAddress, Integer> getNewNodes() {
+        return newNodes;
     }
 
-    public void setAliveNodes(HashMap<NatedAddress, Integer> aliveNodes) {
-        this.aliveNodes = aliveNodes;
+    public void setNewNodes(Map<NatedAddress, Integer> newNodes) {
+        this.newNodes = newNodes;
     }
 
-    public HashMap<NatedAddress, Integer> getSuspectedNodes() {
+    public Map<NatedAddress, Integer> getSuspectedNodes() {
         return suspectedNodes;
     }
 
-    public void setSuspectedNodes(HashMap<NatedAddress, Integer> suspectedNodes) {
+    public void setSuspectedNodes(Map<NatedAddress, Integer> suspectedNodes) {
         this.suspectedNodes = suspectedNodes;
     }
 
-    public HashMap<NatedAddress, Integer> getDeadNodes() {
+    public Map<NatedAddress, Integer> getDeadNodes() {
         return deadNodes;
     }
 
-    public void setDeadNodes(HashMap<NatedAddress, Integer> deadNodes) {
+    public void setDeadNodes(Map<NatedAddress, Integer> deadNodes) {
         this.deadNodes = deadNodes;
     }
 
