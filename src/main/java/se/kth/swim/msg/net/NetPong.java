@@ -18,22 +18,17 @@
  */
 package se.kth.swim.msg.net;
 
-import se.kth.swim.NodeInfo;
 import se.kth.swim.msg.Pong;
-import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Header;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
-
-import java.util.HashMap;
-import java.util.Set;
 
 /**
  * Created by Mattias on 2015-04-11.
  */
 public class NetPong extends NetMsg<Pong> {
 
-    public NetPong(NatedAddress src, NatedAddress dst,  HashMap<NatedAddress, Integer> aliveNodes, HashMap<NatedAddress, Integer> suspectedNodes, HashMap<NatedAddress, Integer> deadNodes, int pingNr) {
-        super(src, dst, new Pong(aliveNodes, suspectedNodes, deadNodes, pingNr));
+    public NetPong(NatedAddress src, NatedAddress dst,  Pong pong) {
+        super(src, dst, pong);
     }
 
     private NetPong(Header<NatedAddress> header, Pong content) {

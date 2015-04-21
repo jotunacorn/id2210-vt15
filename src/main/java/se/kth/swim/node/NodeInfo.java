@@ -1,4 +1,4 @@
-package se.kth.swim;
+package se.kth.swim.node;
 
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
@@ -13,12 +13,22 @@ public class NodeInfo implements Serializable {
 
     private NatedAddress address;
     private int sendCounter;
+    private int incarnationCounter;
     private Type type;
 
-    public NodeInfo(NatedAddress address, int counter, Type type) {
-        this.sendCounter = counter;
+    public NodeInfo(NatedAddress address, int incarnationCounter, Type type) {
         this.address = address;
+        this.sendCounter = 0;
+        this.incarnationCounter = incarnationCounter;
         this.type = type;
+    }
+
+    public NatedAddress getAddress() {
+        return address;
+    }
+
+    public void setAddress(NatedAddress address) {
+        this.address = address;
     }
 
     public int getSendCounter() {
@@ -29,12 +39,12 @@ public class NodeInfo implements Serializable {
         this.sendCounter = sendCounter;
     }
 
-    public NatedAddress getAddress() {
-        return address;
+    public int getIncarnationCounter() {
+        return incarnationCounter;
     }
 
-    public void setAddress(NatedAddress address) {
-        this.address = address;
+    public void setIncarnationCounter(int incarnationCounter) {
+        this.incarnationCounter = incarnationCounter;
     }
 
     public Type getType() {

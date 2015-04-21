@@ -54,7 +54,8 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
  */
 public class SwimScenario {
 
-    private static final int NROFNODES = 10;
+    private static final int NROFNODES = 3;
+
     private static long seed;
     private static InetAddress localHost;
 

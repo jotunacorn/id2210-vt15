@@ -25,9 +25,11 @@ package se.kth.swim.msg;
 public class Ping {
 
     private int pingNr;
+    private int incarnationCounter;
 
-    public Ping(int pingNr) {
+    public Ping(int pingNr, int incarnationCounter) {
         this.pingNr = pingNr;
+        this.incarnationCounter = incarnationCounter;
     }
 
     public int getPingNr() {
@@ -36,5 +38,13 @@ public class Ping {
 
     public void setPingNr(int pingNr) {
         this.pingNr = pingNr;
+    }
+
+    public int getIncarnationCounter() {
+        return incarnationCounter;
+    }
+
+    public void setIncarnationCounter(int incarnationCounter) {
+        this.incarnationCounter = incarnationCounter;
     }
 }

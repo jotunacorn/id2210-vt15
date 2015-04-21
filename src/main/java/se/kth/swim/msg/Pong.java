@@ -13,12 +13,14 @@ public class Pong {
     private Map<NatedAddress, Integer> suspectedNodes;
     private Map<NatedAddress, Integer> deadNodes;
     private int pingNr;
+    private int incarnationCounter;
 
-    public Pong(Map<NatedAddress, Integer> newNodes, Map<NatedAddress, Integer> suspectedNodes, Map<NatedAddress, Integer> deadNodes, int pingNr) {
+    public Pong(Map<NatedAddress, Integer> newNodes, Map<NatedAddress, Integer> suspectedNodes, Map<NatedAddress, Integer> deadNodes, int pingNr, int incarnationCounter) {
         this.newNodes = newNodes;
         this.suspectedNodes = suspectedNodes;
         this.deadNodes = deadNodes;
         this.pingNr = pingNr;
+        this.incarnationCounter = incarnationCounter;
     }
 
     public Map<NatedAddress, Integer> getNewNodes() {
@@ -51,6 +53,14 @@ public class Pong {
 
     public void setPingNr(int pingNr) {
         this.pingNr = pingNr;
+    }
+
+    public int getIncarnationCounter() {
+        return incarnationCounter;
+    }
+
+    public void setIncarnationCounter(int incarnationCounter) {
+        this.incarnationCounter = incarnationCounter;
     }
 }
 
