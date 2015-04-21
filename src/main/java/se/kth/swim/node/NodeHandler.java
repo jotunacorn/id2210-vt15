@@ -49,6 +49,8 @@ public class NodeHandler {
             aliveNodes.put(address, counter);
             sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.NEW));
         }
+
+        printAliveNodes();
     }
 
     public void addSuspected(NatedAddress address, int counter) {
@@ -57,7 +59,7 @@ public class NodeHandler {
         }
 
         if (aliveNodes.containsKey(address)) {
-            if (aliveNodes.get(address) < counter) {
+            if (aliveNodes.get(address) <= counter) {
                 aliveNodes.put(address, counter);
 
                 if (!suspectedNodes.containsKey(address)) {
@@ -72,6 +74,8 @@ public class NodeHandler {
             suspectedNodes.put(address, counter);
             sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.SUSPECTED));
         }
+
+        printAliveNodes();
     }
 
     public void addSuspected(NatedAddress address) {
@@ -82,6 +86,8 @@ public class NodeHandler {
         }
 
         suspectedNodes.put(address, incarnationCounter);
+
+        printAliveNodes();
     }
 
     public void addDead(NatedAddress address, int counter) {
@@ -93,6 +99,8 @@ public class NodeHandler {
         suspectedNodes.remove(address);
         deadNodes.put(address, counter);
         sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.DEAD));
+
+        printAliveNodes();
     }
 
     public boolean addDead(NatedAddress address) {
@@ -170,7 +178,7 @@ public class NodeHandler {
     }
 
     public void printAliveNodes() {
-        SwimComp.log.info("{} Alive nodes: {}", new Object[]{selfAddress.getId(), aliveNodes});
+        SwimComp.log.info("{} Node status:\nAlive nodes: {}\nSuspected nodes: {}\nDead Nodes: {}", new Object[]{selfAddress.getId(), aliveNodes, suspectedNodes, deadNodes});
     }
 
     public Map<NatedAddress, Integer> getAliveNodes() {

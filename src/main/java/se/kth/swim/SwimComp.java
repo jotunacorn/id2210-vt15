@@ -154,7 +154,7 @@ public class SwimComp extends ComponentDefinition {
                 }
             }
 
-            nodeHandler.printAliveNodes();
+            //nodeHandler.printAliveNodes();
         }
 
     };
@@ -169,11 +169,11 @@ public class SwimComp extends ComponentDefinition {
 
             nodeHandler.addAlive(event.getSource(), event.getContent().getIncarnationCounter());
 
-            if (Math.random() > 0.5) {
+            //if (Math.random() > 0.5) {
                 log.info("{} sending pong to :{}", new Object[]{selfAddress.getId(), event.getSource()});
                 Pong pong = nodeHandler.getPong(event.getContent().getPingNr(), incarnationCounter);
                 trigger(new NetPong(selfAddress, event.getSource(), pong), network);
-            }
+            //}
         }
 
     };
@@ -237,7 +237,7 @@ public class SwimComp extends ComponentDefinition {
                 scheduleTimeout.setTimeoutEvent(suspectedTimeout);
                 trigger(scheduleTimeout, timer);
 
-                nodeHandler.printAliveNodes();
+                //nodeHandler.printAliveNodes();
             }
         }
     };
@@ -251,7 +251,7 @@ public class SwimComp extends ComponentDefinition {
             if (nodeHandler.addDead(suspectedTimeout.getAddress())) {
                 log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
-                nodeHandler.printAliveNodes();
+                //nodeHandler.printAliveNodes();
             }
         }
     };
