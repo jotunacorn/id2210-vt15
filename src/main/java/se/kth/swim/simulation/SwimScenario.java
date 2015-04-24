@@ -27,6 +27,7 @@ import java.util.Set;
 import org.javatuples.Pair;
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
+import se.kth.swim.SwimComp;
 import se.sics.kompics.network.Address;
 import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.ChangeNetworkModelCmd;
@@ -54,7 +55,7 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
  */
 public class SwimScenario {
 
-    private static final int NROFNODES = 3;
+    private static final int NROFNODES = 10;
 
     private static long seed;
     private static InetAddress localHost;
@@ -204,6 +205,7 @@ public class SwimScenario {
 
         @Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
+            SwimComp.log.info("Disconnected nodes " + disconnectedNodesSets.get(setIndex));
             NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
             NetworkModel compositeNetworkModel = new DisconnectedNodesNetworkModel(setIndex, baseNetworkModel, disconnectedNodesSets.get(setIndex));
             return new ChangeNetworkModelCmd(compositeNetworkModel);
@@ -296,8 +298,8 @@ public class SwimScenario {
                 startPeers.startAfterTerminationOf(1000, startAggregator);
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-//                disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(10000, startPeers);
+                disconnectedNodes1.startAfterTerminationOf(5000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(50000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
 
             }

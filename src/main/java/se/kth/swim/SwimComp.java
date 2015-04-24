@@ -45,7 +45,8 @@ import java.util.*;
 @SuppressWarnings("FieldCanBeLocal")
 public class SwimComp extends ComponentDefinition {
 
-    private static final int PING_TIMEOUT = 1000;
+    private static final int PING_TIMEOUT = 2000;
+    private static final int SUSPECTED_TIMEOUT = 4000;
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
     private Positive<Network> network = requires(Network.class);
@@ -125,7 +126,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetPong event) {
-            log.info("{} received pong from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
+            log.info("{} received pong nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
 
             sentPingNrs.remove(Integer.valueOf(event.getContent().getPingNr()));
 
@@ -138,6 +139,7 @@ public class SwimComp extends ComponentDefinition {
             }
 
             for (NatedAddress address : event.getContent().getDeadNodes().keySet()) {
+                log.info("{} Declared node {} dead from pong", new Object[]{selfAddress.getId(), address});
                 nodeHandler.addDead(address, event.getContent().getDeadNodes().get(address));
             }
 
@@ -163,17 +165,15 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetPing event) {
-            log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
+            log.info("{} received ping nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
 
             receivedPings++;
 
             nodeHandler.addAlive(event.getSource(), event.getContent().getIncarnationCounter());
 
-            //if (Math.random() > 0.5) {
-                log.info("{} sending pong to :{}", new Object[]{selfAddress.getId(), event.getSource()});
-                Pong pong = nodeHandler.getPong(event.getContent().getPingNr(), incarnationCounter);
-                trigger(new NetPong(selfAddress, event.getSource(), pong), network);
-            //}
+            log.info("{} sending pong nr {} to :{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getSource()});
+            Pong pong = nodeHandler.getPong(event.getContent().getPingNr(), incarnationCounter);
+            trigger(new NetPong(selfAddress, event.getSource(), pong), network);
         }
 
     };
@@ -195,7 +195,7 @@ public class SwimComp extends ComponentDefinition {
             NatedAddress partnerAddress = nodeHandler.getRandomAliveNode();
 
             if (partnerAddress != null) {
-                log.info("{} sending ping to partner:{}", new Object[]{selfAddress.getId(), partnerAddress});
+                log.info("{} sending ping nr {} to partner:{}", new Object[]{selfAddress.getId(), sentPings, partnerAddress});
 
                 trigger(new NetPing(selfAddress, partnerAddress, sentPings, incarnationCounter), network);
 
@@ -228,11 +228,11 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(PongTimeout pongTimeout) {
             if (sentPingNrs.contains(pongTimeout.getPingNr())) {
-                log.info("{} Suspected node: {}", new Object[]{selfAddress.getId(), pongTimeout.getAddress()});
+                log.info("{} Suspected missing ping nr {} from node: {}", new Object[]{selfAddress.getId(), pongTimeout.getPingNr(), pongTimeout.getAddress()});
 
                 nodeHandler.addSuspected(pongTimeout.getAddress());
 
-                ScheduleTimeout scheduleTimeout = new ScheduleTimeout(PING_TIMEOUT);
+                ScheduleTimeout scheduleTimeout = new ScheduleTimeout(SUSPECTED_TIMEOUT);
                 SuspectedTimeout suspectedTimeout = new SuspectedTimeout(scheduleTimeout, pongTimeout.getAddress());
                 scheduleTimeout.setTimeoutEvent(suspectedTimeout);
                 trigger(scheduleTimeout, timer);

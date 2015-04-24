@@ -50,7 +50,7 @@ public class NodeHandler {
             sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.NEW));
         }
 
-        printAliveNodes();
+        //printAliveNodes();
     }
 
     public void addSuspected(NatedAddress address, int counter) {
@@ -75,7 +75,7 @@ public class NodeHandler {
             sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.SUSPECTED));
         }
 
-        printAliveNodes();
+        //printAliveNodes();
     }
 
     public void addSuspected(NatedAddress address) {
@@ -87,7 +87,7 @@ public class NodeHandler {
 
         suspectedNodes.put(address, incarnationCounter);
 
-        printAliveNodes();
+        //printAliveNodes();
     }
 
     public void addDead(NatedAddress address, int counter) {
@@ -100,7 +100,7 @@ public class NodeHandler {
         deadNodes.put(address, counter);
         sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.DEAD));
 
-        printAliveNodes();
+        //printAliveNodes();
     }
 
     public boolean addDead(NatedAddress address) {
