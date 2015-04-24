@@ -53,6 +53,36 @@ public class NodeHandler {
         //printAliveNodes();
     }
 
+    /**
+     * Copy of addAlive with <= on incarnation counter.
+     * */
+    public void addDefinatelyAlive(NatedAddress address, int counter) {
+        if (address.equals(selfAddress)) { //Never add self to lists.
+            return;
+        }
+
+        if (aliveNodes.containsKey(address)) {
+            if (aliveNodes.get(address) <= counter) { //If incarnation counter is lower, this is newer, update info.
+                aliveNodes.put(address, counter);
+
+                if (suspectedNodes.containsKey(address)) { //If node reported alive is suspected by us, remove it from suspected list.
+                    suspectedNodes.remove(address);
+                }
+
+                if (sendBuffer.containsKey(address)) { //Also update counter in send queue
+                    NodeInfo nodeInfo = sendBuffer.get(address);
+                    nodeInfo.setIncarnationCounter(counter);
+                    nodeInfo.setType(NodeInfo.Type.NEW);
+                    sendBuffer.put(address, nodeInfo);
+                }
+            }
+        }
+        else if (!deadNodes.containsKey(address)) { //Else add fresh entry
+            aliveNodes.put(address, counter);
+            sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.NEW));
+        }
+    }
+
     public void addSuspected(NatedAddress address, int counter) {
         if (address.equals(selfAddress)) { //Never add self to lists.
             return;
