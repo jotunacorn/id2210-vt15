@@ -215,4 +215,11 @@ public class NodeHandler {
         return aliveNodes;
     }
 
+    public Map<NatedAddress, Integer> getDeadNodes() {
+        return deadNodes;
+    }
+
+    public Map<NatedAddress, Integer> getSuspectedNodes() {
+        return suspectedNodes;
+    }
 }

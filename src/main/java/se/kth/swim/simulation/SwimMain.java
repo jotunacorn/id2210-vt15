@@ -20,10 +20,17 @@ package se.kth.swim.simulation;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Assert;
+import se.kth.swim.AggregatorComp;
+import se.kth.swim.SwimComp;
+import se.kth.swim.msg.Status;
 import se.sics.kompics.Kompics;
 import se.sics.kompics.simulation.SimulatorScheduler;
 import se.sics.p2ptoolbox.simulator.run.LauncherComp;
+import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
@@ -58,6 +65,8 @@ public class SwimMain {
             throw new RuntimeException(ex.getMessage());
         }
 
-        Assert.assertEquals(null, SwimSimulationResult.failureCause);
+        //Assert.assertEquals(null, SwimSimulationResult.failureCause);
+
+        AggregatorComp.calculateConvergence();
     }
 }

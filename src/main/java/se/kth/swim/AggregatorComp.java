@@ -20,6 +20,7 @@ package se.kth.swim;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.NetStatus;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -30,6 +31,8 @@ import se.sics.kompics.Stop;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+
+import java.util.*;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -42,9 +45,13 @@ public class AggregatorComp extends ComponentDefinition {
 
     private final NatedAddress selfAddress;
 
+    public static Map<Integer, Map<NatedAddress, Status>> statuses;
+
     public AggregatorComp(AggregatorInit init) {
         this.selfAddress = init.selfAddress;
         log.info("{} initiating...", new Object[]{selfAddress.getId()});
+
+        statuses = new HashMap<>();
 
         subscribe(handleStart, control);
         subscribe(handleStop, control);
@@ -74,8 +81,50 @@ public class AggregatorComp extends ComponentDefinition {
         public void handle(NetStatus status) {
             log.info("{} status from:{} pings:{}", 
                     new Object[]{selfAddress.getId(), status.getHeader().getSource(), status.getContent().receivedPings});
+
+            Map<NatedAddress, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
+
+            if (statusesFromNode == null) {
+                statusesFromNode = new HashMap<>();
+                statuses.put(status.getContent().getStatusNr(), statusesFromNode);
+            }
+
+            statusesFromNode.put(status.getSource(), status.getContent());
         }
     };
+
+    public static void calculateConvergence() {
+        Map<Integer, Double> convergenceByStatusNr = new HashMap<>();
+
+        for (int statusNr : statuses.keySet()) {
+            Map<NatedAddress, Status> statusesForNr = statuses.get(statusNr);
+
+            Set<NatedAddress> allAliveNodes = new HashSet<>();
+            Set<NatedAddress> commonAliveNodes = null;
+
+            for (NatedAddress address : statusesForNr.keySet()) {
+                Status status = statusesForNr.get(address);
+
+                allAliveNodes.addAll(status.getAliveNodes().keySet());
+
+                status.getAliveNodes().put(address, 0);
+
+                if (commonAliveNodes == null) {
+                    commonAliveNodes = new HashSet<>(status.getAliveNodes().keySet());
+                }
+                else {
+                    commonAliveNodes.retainAll(status.getAliveNodes().keySet());
+                }
+            }
+
+            double convergenceRate = (double) commonAliveNodes.size() / (double) Math.max(1, allAliveNodes.size());
+            convergenceByStatusNr.put(statusNr, convergenceRate);
+        }
+
+        for (int statusNr : convergenceByStatusNr.keySet()) {
+            SwimComp.log.info("Convergence at iteration {}: {}", statusNr, convergenceByStatusNr.get(statusNr));
+        }
+    }
 
     public static class AggregatorInit extends Init<AggregatorComp> {
 

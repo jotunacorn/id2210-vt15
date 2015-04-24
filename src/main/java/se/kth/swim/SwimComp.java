@@ -59,6 +59,7 @@ public class SwimComp extends ComponentDefinition {
     private int sentPings = 0;
     private int receivedPings = 0;
     private int incarnationCounter = 0;
+    private int sentStatuses = 0;
 
     private NodeHandler nodeHandler;
 
@@ -150,8 +151,8 @@ public class SwimComp extends ComponentDefinition {
                 nodeHandler.addDefinatelyAlive(event.getSource(), event.getContent().getIncarnationCounter());
                 //log.info("{} Restored suspected node: {}", new Object[]{selfAddress.getId(), event.getSource()});
 
-                if (event.getContent().getSuspectedNodes().containsKey(selfAddress) || event.getContent().getDeadNodes().containsKey(selfAddress)) {
-                    log.info("{} Found self in suspected or dead list from node: {}", new Object[]{selfAddress.getId(), event.getSource()});
+                if (event.getContent().getSuspectedNodes().containsKey(selfAddress)) {
+                    log.info("{} Found self in suspected list from node: {}", new Object[]{selfAddress.getId(), event.getSource()});
 
                     incarnationCounter++;
 
@@ -252,7 +253,9 @@ public class SwimComp extends ComponentDefinition {
         public void handle(StatusTimeout event) {
             //log.info("{} sending status to aggregator:{}", new Object[]{selfAddress.getId(), aggregatorAddress});
 
-            trigger(new NetStatus(selfAddress, aggregatorAddress, new Status(receivedPings)), network);
+            trigger(new NetStatus(selfAddress, aggregatorAddress, new Status(sentStatuses, receivedPings, sentPings, nodeHandler.getAliveNodes(), nodeHandler.getSuspectedNodes(), nodeHandler.getDeadNodes())), network);
+
+            sentStatuses++;
         }
 
     };
@@ -314,7 +317,7 @@ public class SwimComp extends ComponentDefinition {
     }
 
     private void schedulePeriodicStatus() {
-        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(10000, 10000);
+        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 1000);
         StatusTimeout sc = new StatusTimeout(spt);
         spt.setTimeoutEvent(sc);
         statusTimeoutId = sc.getTimeoutId();
