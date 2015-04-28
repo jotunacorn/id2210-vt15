@@ -8,13 +8,15 @@ import java.util.*;
 
 
 public class NodeHandler {
-    private static final int MESSAGE_SIZE = 100000;
+    private static final int MESSAGE_SIZE = 10;
     private static final int LAMBDA = 3;
 
     private NatedAddress selfAddress;
 
     private Map<NatedAddress, Integer> aliveNodes, suspectedNodes, deadNodes;
     private Map<NatedAddress, NodeInfo> sendBuffer;
+    private List<NatedAddress> pingList;
+    private int pingIndex;
 
     public NodeHandler(NatedAddress selfAddress) {
         this.selfAddress = selfAddress;
@@ -22,6 +24,7 @@ public class NodeHandler {
         suspectedNodes = new HashMap<>();
         deadNodes = new HashMap<>();
         sendBuffer = new HashMap<>();
+        pingList = new ArrayList<>();
     }
 
     public void addAlive(NatedAddress address, int counter) {
@@ -48,9 +51,16 @@ public class NodeHandler {
         else if (!deadNodes.containsKey(address)) { //Else add fresh entry
             aliveNodes.put(address, counter);
             sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.NEW));
+            addToPingList(address);
         }
 
         //printAliveNodes();
+    }
+
+    private void addToPingList(NatedAddress address) {
+        int insertIndex = (int)(pingList.size()*Math.random());
+        pingList.add(insertIndex, address);
+
     }
 
     /**
@@ -80,6 +90,7 @@ public class NodeHandler {
         else if (!deadNodes.containsKey(address)) { //Else add fresh entry
             aliveNodes.put(address, counter);
             sendBuffer.put(address, new NodeInfo(address, counter, NodeInfo.Type.NEW));
+            addToPingList(address);
         }
     }
 
@@ -144,14 +155,17 @@ public class NodeHandler {
     }
 
     public NatedAddress getRandomAliveNode() {
-        NatedAddress partnerAddress = null;
-
-        if (aliveNodes.size() > 0) {
-            List<NatedAddress> addresses = new ArrayList<>(aliveNodes.keySet());
-            partnerAddress = addresses.get((int) (Math.random() * aliveNodes.size()));
+        if(pingList.isEmpty() || pingIndex>=pingList.size()){
+            pingList.addAll(aliveNodes.keySet());
+            Collections.shuffle(pingList);
+            pingIndex = 0;
         }
-
-        return partnerAddress;
+        if(pingList.isEmpty()) {
+            return null;
+        }
+        NatedAddress returnAddress = pingList.get(pingIndex);
+        pingIndex++;
+        return returnAddress;
     }
 
     public Pong getPong(int pingNr, int incarnationCounter) {
@@ -197,7 +211,7 @@ public class NodeHandler {
                     break;
             }
 
-            if (nodeInfo.getSendCounter() > LAMBDA * Math.log(Math.min(1, aliveNodes.size()))) {
+            if (nodeInfo.getSendCounter() > LAMBDA * Math.max(1, Math.log(Math.max(1, aliveNodes.size())))) {
                 sendBuffer.remove(nodeInfo.getAddress());
             }
 
@@ -208,7 +222,7 @@ public class NodeHandler {
     }
 
     public void printAliveNodes() {
-        SwimComp.log.info("{} Node status:\nAlive nodes: {}\nSuspected nodes: {}\nDead Nodes: {}", new Object[]{selfAddress.getId(), aliveNodes, suspectedNodes, deadNodes});
+        //SwimComp.log.info("{} Node status:\nAlive nodes({}): {}\nSuspected nodes: {}\nDead Nodes: {}", new Object[]{selfAddress.getId(), aliveNodes.size(),aliveNodes, suspectedNodes, deadNodes});
     }
 
     public Map<NatedAddress, Integer> getAliveNodes() {

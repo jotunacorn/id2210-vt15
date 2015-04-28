@@ -42,8 +42,10 @@ import java.util.*;
 @SuppressWarnings("FieldCanBeLocal")
 public class SwimComp extends ComponentDefinition {
 
-    private static final int PING_TIMEOUT = 2000;
-    private static final int SUSPECTED_TIMEOUT = 4000;
+    private static final int PING_TIMEOUT = 2000; //Time until a node is suspected
+    private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
+    private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
+    private static final boolean ENABLE_LOGGING = false;
     private static final int K = 1;
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
@@ -68,7 +70,8 @@ public class SwimComp extends ComponentDefinition {
     private Map<Integer, NatedAddress> sentIndirectPings;
 
     public SwimComp(SwimInit init) {
-        log.info("{} initiating...", init.selfAddress);
+        if(ENABLE_LOGGING)
+            log.info("{} initiating...", init.selfAddress);
 
         selfAddress = init.selfAddress;
         aggregatorAddress = init.aggregatorAddress;
@@ -80,7 +83,7 @@ public class SwimComp extends ComponentDefinition {
         for (NatedAddress address : init.bootstrapNodes) {
             nodeHandler.addAlive(address, 0);
         }
-
+        nodeHandler.printAliveNodes();
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handlePing, network);
@@ -98,6 +101,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
+            if(ENABLE_LOGGING)
             log.info("{} starting...", new Object[]{selfAddress.getId()});
 
             schedulePeriodicPing();
@@ -110,6 +114,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(Stop event) {
+            if(ENABLE_LOGGING)
             log.info("{} stopping...", new Object[]{selfAddress.getId()});
 
             if (pingTimeoutId != null) {
@@ -127,6 +132,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetPong event) {
+            if(ENABLE_LOGGING)
             log.info("{} received pong nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
 
             boolean wasRegularPing = sentPingNrs.remove(Integer.valueOf(event.getContent().getPingNr()));
@@ -141,6 +147,7 @@ public class SwimComp extends ComponentDefinition {
                 }
 
                 for (NatedAddress address : event.getContent().getDeadNodes().keySet()) {
+                    if(ENABLE_LOGGING)
                     log.info("{} Declared node {} dead from pong", new Object[]{selfAddress.getId(), address});
                     nodeHandler.addDead(address, event.getContent().getDeadNodes().get(address));
                 }
@@ -149,6 +156,7 @@ public class SwimComp extends ComponentDefinition {
                 //log.info("{} Restored suspected node: {}", new Object[]{selfAddress.getId(), event.getSource()});
 
                 if (event.getContent().getSuspectedNodes().containsKey(selfAddress)) {
+                    if(ENABLE_LOGGING)
                     log.info("{} Found self in suspected list from node: {}", new Object[]{selfAddress.getId(), event.getSource()});
 
                     incarnationCounter++;
@@ -159,6 +167,7 @@ public class SwimComp extends ComponentDefinition {
                 }
             }
             else if (sentIndirectPings.containsKey(event.getContent().getPingNr())) {
+                if(ENABLE_LOGGING)
                 log.info("{} forwarding KPing result for suspected node {} to: {}", new Object[]{selfAddress.getId(), event.getSource(), sentIndirectPings.get(event.getContent().getPingNr())});
                 trigger(new NetKPong(selfAddress, sentIndirectPings.get(event.getContent().getPingNr()), event.getSource(), event.getContent().getIncarnationCounter()), network);
                 sentIndirectPings.remove(event.getContent().getPingNr());
@@ -173,12 +182,13 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetPing event) {
+            if(ENABLE_LOGGING)
             log.info("{} received ping nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
 
             receivedPings++;
 
             nodeHandler.addDefinatelyAlive(event.getSource(), event.getContent().getIncarnationCounter());
-
+            if(ENABLE_LOGGING)
             log.info("{} sending pong nr {} to :{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getSource()});
             Pong pong = nodeHandler.getPong(event.getContent().getPingNr(), incarnationCounter);
             trigger(new NetPong(selfAddress, event.getSource(), pong), network);
@@ -192,6 +202,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetAlive netAlive) {
+            if(ENABLE_LOGGING)
             log.info("{} Restored suspected node by alive message from: {}", new Object[]{selfAddress.getId(), netAlive.getSource()});
 
             nodeHandler.addAlive(netAlive.getSource(), netAlive.getContent().getIncarnationCounter());
@@ -202,6 +213,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetKPing netKPing) {
+            if(ENABLE_LOGGING)
             log.info("{} received KPing request for suspected node {}", new Object[]{selfAddress.getId(), netKPing.getContent().getAddressToPing()});
 
             trigger(new NetPing(selfAddress, netKPing.getContent().getAddressToPing(), sentPings, incarnationCounter), network);
@@ -215,6 +227,7 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(NetKPong netKPong) {
+            if(ENABLE_LOGGING)
             log.info("{} received KPong for suspected node {}", new Object[]{selfAddress.getId(), netKPong.getContent().getAddress()});
             nodeHandler.addDefinatelyAlive(netKPong.getContent().getAddress(), netKPong.getContent().getIncarnationCounter());
             nodeHandler.printAliveNodes();
@@ -229,6 +242,7 @@ public class SwimComp extends ComponentDefinition {
             NatedAddress partnerAddress = nodeHandler.getRandomAliveNode();
 
             if (partnerAddress != null) {
+                if(ENABLE_LOGGING)
                 log.info("{} sending ping nr {} to partner:{}", new Object[]{selfAddress.getId(), sentPings, partnerAddress});
 
                 trigger(new NetPing(selfAddress, partnerAddress, sentPings, incarnationCounter), network);
@@ -250,9 +264,10 @@ public class SwimComp extends ComponentDefinition {
 
         @Override
         public void handle(StatusTimeout event) {
-            //log.info("{} sending status to aggregator:{}", new Object[]{selfAddress.getId(), aggregatorAddress});
-
-            trigger(new NetStatus(selfAddress, aggregatorAddress, new Status(sentStatuses, receivedPings, sentPings, nodeHandler.getAliveNodes(), nodeHandler.getSuspectedNodes(), nodeHandler.getDeadNodes())), network);
+            if(ENABLE_LOGGING)
+            log.info("{} sending status nr:{} to aggregator:{}", new Object[]{selfAddress.getId(), sentStatuses, aggregatorAddress});
+            Map<NatedAddress, Integer> sendAliveNodes = new HashMap<>(nodeHandler.getAliveNodes());
+            trigger(new NetStatus(selfAddress, aggregatorAddress, new Status(sentStatuses, receivedPings, sentPings, sendAliveNodes, nodeHandler.getSuspectedNodes(), nodeHandler.getDeadNodes())), network);
 
             sentStatuses++;
         }
@@ -264,6 +279,7 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(PongTimeout pongTimeout) {
             if (sentPingNrs.contains(pongTimeout.getPingNr())) {
+                if(ENABLE_LOGGING)
                 log.info("{} Suspected missing ping nr {} from node: {}", new Object[]{selfAddress.getId(), pongTimeout.getPingNr(), pongTimeout.getAddress()});
 
                 nodeHandler.addSuspected(pongTimeout.getAddress());
@@ -273,6 +289,7 @@ public class SwimComp extends ComponentDefinition {
                 Collections.shuffle(aliveNodes);
 
                 for (int i = 0; i < K && i < aliveNodes.size(); i++) {
+                    if(ENABLE_LOGGING)
                     log.info("{} sending KPing for suspected node {} to: {}", new Object[]{selfAddress.getId(), pongTimeout.getAddress(), aliveNodes.get(i)});
                     trigger(new NetKPing(selfAddress, aliveNodes.get(i), pongTimeout.getAddress()), network);
                 }
@@ -294,6 +311,7 @@ public class SwimComp extends ComponentDefinition {
             //log.info("{} Suspected node timeout: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
             if (nodeHandler.addDead(suspectedTimeout.getAddress())) {
+                if(ENABLE_LOGGING)
                 log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
                 //nodeHandler.printAliveNodes();
@@ -302,7 +320,7 @@ public class SwimComp extends ComponentDefinition {
     };
 
     private void schedulePeriodicPing() {
-        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, (long) (500 + Math.random() * 500));
+        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 1000);
         PingTimeout sc = new PingTimeout(spt);
         spt.setTimeoutEvent(sc);
         pingTimeoutId = sc.getTimeoutId();
@@ -316,7 +334,7 @@ public class SwimComp extends ComponentDefinition {
     }
 
     private void schedulePeriodicStatus() {
-        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 1000);
+        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, AGGREGATOR_TIMEOUT);
         StatusTimeout sc = new StatusTimeout(spt);
         spt.setTimeoutEvent(sc);
         statusTimeoutId = sc.getTimeoutId();

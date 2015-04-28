@@ -79,8 +79,8 @@ public class AggregatorComp extends ComponentDefinition {
 
         @Override
         public void handle(NetStatus status) {
-            log.info("{} status from:{} pings:{}", 
-                    new Object[]{selfAddress.getId(), status.getHeader().getSource(), status.getContent().receivedPings});
+            log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}",
+                    new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings});
 
             Map<NatedAddress, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
 
@@ -118,6 +118,7 @@ public class AggregatorComp extends ComponentDefinition {
             }
 
             double convergenceRate = (double) commonAliveNodes.size() / (double) Math.max(1, allAliveNodes.size());
+            log.info("alive nodes is " + commonAliveNodes.size() + " all alive is " + allAliveNodes.size());
             convergenceByStatusNr.put(statusNr, convergenceRate);
         }
 

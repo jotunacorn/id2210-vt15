@@ -50,7 +50,8 @@ import java.util.Set;
  */
 public class SwimScenario {
 
-    private static final int NUMBER_OF_NODES = 3;
+    private static final int NUMBER_OF_NODES = 1000;
+    private static final int BOOTSTRAP_SIZE = 20;
 
     private static long seed;
     private static InetAddress localHost;
@@ -150,7 +151,7 @@ public class SwimScenario {
                      * we don't want all nodes to start their pseudo random
                      * generators with same seed else they might behave the same
                      */
-                    long nodeSeed = seed + nodeId;
+                    long nodeSeed = seed + nodeId ;
                     return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed, croupierConfig);
                 }
 
@@ -166,7 +167,7 @@ public class SwimScenario {
 
                 @Override
                 public int bootstrapSize() {
-                    return 5;
+                    return BOOTSTRAP_SIZE;
                 }
 
             };
@@ -251,7 +252,7 @@ public class SwimScenario {
 
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(1000));
+                        eventInterArrivalTime(constant(0));
                         raise(NUMBER_OF_NODES, startNodeOp, new BasicIntSequentialDistribution(10));
                     }
                 };
@@ -289,7 +290,7 @@ public class SwimScenario {
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
 //                disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(30*1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(50*10000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
 
             }
