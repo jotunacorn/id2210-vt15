@@ -23,6 +23,8 @@ import java.util.Random;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.swim.croupier.CroupierPort;
+import se.kth.swim.croupier.msg.CroupierSample;
 import se.kth.swim.msg.net.NetMsg;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -33,9 +35,6 @@ import se.sics.kompics.Start;
 import se.sics.kompics.Stop;
 import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
-import se.sics.kompics.timer.ScheduleTimeout;
-import se.sics.kompics.timer.Timeout;
-import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
 import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
@@ -46,37 +45,31 @@ import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
  */
 public class NatTraversalComp extends ComponentDefinition {
 
-    private static final boolean ENABLE_DEBUGGING = false;
-    private static final int MESSAGE_DELAY = 10;
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
     private Negative<Network> local = provides(Network.class);
     private Positive<Network> network = requires(Network.class);
-    private Positive<Timer> timer = requires(Timer.class);
+    private Positive<CroupierPort> croupier = requires(CroupierPort.class);
 
     private final NatedAddress selfAddress;
     private final Random rand;
 
     public NatTraversalComp(NatTraversalInit init) {
         this.selfAddress = init.selfAddress;
-        if (ENABLE_DEBUGGING) {
-            log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
-        }
+        log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
 
         this.rand = new Random(init.seed);
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
-      //  subscribe(handleDelay, network);
         subscribe(handleOutgoingMsg, local);
+        subscribe(handleCroupierSample, croupier);
     }
 
     private Handler<Start> handleStart = new Handler<Start>() {
 
         @Override
         public void handle(Start event) {
-            if (ENABLE_DEBUGGING) {
-                log.info("{} starting...", new Object[]{selfAddress.getId()});
-            }
+            log.info("{} starting...", new Object[]{selfAddress.getId()});
         }
 
     };
@@ -84,34 +77,16 @@ public class NatTraversalComp extends ComponentDefinition {
 
         @Override
         public void handle(Stop event) {
-            if (ENABLE_DEBUGGING) {
-                log.info("{} stopping...", new Object[]{selfAddress.getId()});
-            }
+            log.info("{} stopping...", new Object[]{selfAddress.getId()});
         }
 
-    };
-
-    private Handler<NetMsg<Object>> handleDelay = new Handler<NetMsg<Object>>() {
-        @Override
-        public void handle(NetMsg<Object> objectNetMsg) {
-            if (ENABLE_DEBUGGING) {
-                log.trace("{} delaying a message:{}", new Object[]{selfAddress.getId(), objectNetMsg});
-            }
-            ScheduleTimeout scheduleTimeout = new ScheduleTimeout(MESSAGE_DELAY);
-            DelayedMessage suspectedTimeout = new DelayedMessage(scheduleTimeout,objectNetMsg );
-            scheduleTimeout.setTimeoutEvent(suspectedTimeout);
-            trigger(scheduleTimeout, timer);
-        }
     };
 
     private Handler<NetMsg<Object>> handleIncomingMsg = new Handler<NetMsg<Object>>() {
 
         @Override
         public void handle(NetMsg<Object> msg) {
-     //       NetMsg<Object> msg = message.getMessage();
-            if (ENABLE_DEBUGGING) {
-                log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
-            }
+            log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
             Header<NatedAddress> header = msg.getHeader();
             if (header instanceof SourceHeader) {
                 if (!selfAddress.isOpen()) {
@@ -119,16 +94,12 @@ public class NatTraversalComp extends ComponentDefinition {
                 }
                 SourceHeader<NatedAddress> sourceHeader = (SourceHeader<NatedAddress>) header;
                 if (sourceHeader.getActualDestination().getParents().contains(selfAddress)) {
-                    if (ENABLE_DEBUGGING) {
-                        log.info("{} relaying message for:{}", new Object[]{selfAddress.getId(), sourceHeader.getSource()});
-                    }
+                    log.info("{} relaying message for:{}", new Object[]{selfAddress.getId(), sourceHeader.getSource()});
                     RelayHeader<NatedAddress> relayHeader = sourceHeader.getRelayHeader();
                     trigger(msg.copyMessage(relayHeader), network);
                     return;
                 } else {
-                    if (ENABLE_DEBUGGING) {
-                        log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
-                    }
+                    log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
                     return;
                 }
             } else if (header instanceof RelayHeader) {
@@ -136,16 +107,12 @@ public class NatTraversalComp extends ComponentDefinition {
                     throw new RuntimeException("relay header msg received on open node - nat traversal logic error");
                 }
                 RelayHeader<NatedAddress> relayHeader = (RelayHeader<NatedAddress>) header;
-                if (ENABLE_DEBUGGING) {
-                    log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
-                }
+                log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
                 Header<NatedAddress> originalHeader = relayHeader.getActualHeader();
                 trigger(msg.copyMessage(originalHeader), local);
                 return;
             } else {
-                if (ENABLE_DEBUGGING) {
-                    log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
-                }
+                log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
                 trigger(msg, local);
                 return;
             }
@@ -160,9 +127,7 @@ public class NatTraversalComp extends ComponentDefinition {
             log.trace("{} sending msg:{}", new Object[]{selfAddress.getId(), msg});
             Header<NatedAddress> header = msg.getHeader();
             if(header.getDestination().isOpen()) {
-                if (ENABLE_DEBUGGING) {
-                    log.info("{} sending direct message:{} to:{}", new Object[]{selfAddress.getId(), msg, header.getDestination()});
-                }
+                log.info("{} sending direct message:{} to:{}", new Object[]{selfAddress.getId(), msg, header.getDestination()});
                 trigger(msg, network);
                 return;
             } else {
@@ -171,14 +136,20 @@ public class NatTraversalComp extends ComponentDefinition {
                 }
                 NatedAddress parent = randomNode(header.getDestination().getParents());
                 SourceHeader<NatedAddress> sourceHeader = new SourceHeader(header, parent);
-                if (ENABLE_DEBUGGING) {
-                    log.info("{} sending message:{} to relay:{}", new Object[]{selfAddress.getId(), msg, parent});
-                }
+                log.info("{} sending message:{} to relay:{}", new Object[]{selfAddress.getId(), msg, parent});
                 trigger(msg.copyMessage(sourceHeader), network);
                 return;
             }
         }
 
+    };
+    
+    private Handler handleCroupierSample = new Handler<CroupierSample>() {
+        @Override
+        public void handle(CroupierSample event) {
+            log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
+            //use this to change parent in case it died
+        }
     };
     
     private NatedAddress randomNode(Set<NatedAddress> nodes) {
@@ -199,21 +170,6 @@ public class NatTraversalComp extends ComponentDefinition {
         public NatTraversalInit(NatedAddress selfAddress, long seed) {
             this.selfAddress = selfAddress;
             this.seed = seed;
-        }
-    }
-    public static class DelayedMessage extends Timeout{
-        NetMsg<Object> message;
-        public DelayedMessage(ScheduleTimeout request, NetMsg<Object> message) {
-            super(request);
-            this.message = message;
-        }
-
-        public NetMsg<Object> getMessage() {
-            return message;
-        }
-
-        public void setMessage(NetMsg<Object> message) {
-            this.message = message;
         }
     }
 }

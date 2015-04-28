@@ -27,8 +27,7 @@ import java.util.Set;
 import org.javatuples.Pair;
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
-import se.kth.swim.SwimComp;
-import se.sics.kompics.network.Address;
+import se.kth.swim.croupier.CroupierConfig;
 import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.ChangeNetworkModelCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.SimulationResult;
@@ -44,7 +43,6 @@ import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation1;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.ConstantDistribution;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.GenIntSequentialDistribution;
-import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.IntegerUniformDistribution;
 import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
@@ -55,11 +53,10 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
  */
 public class SwimScenario {
 
-    private static final int NROFNODES = 10;
-
     private static long seed;
     private static InetAddress localHost;
 
+    private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 2000, 1000); 
     static {
         try {
             localHost = InetAddress.getByName("127.0.0.1");
@@ -155,7 +152,7 @@ public class SwimScenario {
                      * generators with same seed else they might behave the same
                      */
                     long nodeSeed = seed + nodeId;
-                    return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed);
+                    return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed, croupierConfig);
                 }
 
                 @Override
@@ -205,7 +202,6 @@ public class SwimScenario {
 
         @Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
-            SwimComp.log.info("Disconnected nodes " + disconnectedNodesSets.get(setIndex));
             NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
             NetworkModel compositeNetworkModel = new DisconnectedNodesNetworkModel(setIndex, baseNetworkModel, disconnectedNodesSets.get(setIndex));
             return new ChangeNetworkModelCmd(compositeNetworkModel);
@@ -257,12 +253,7 @@ public class SwimScenario {
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        Integer [] nodes = new Integer[NROFNODES];
-                        for(int i = 0; i < NROFNODES; i++){
-                            nodes[i] = i+10;
-                        }
-
-                        raise(NROFNODES, startNodeOp, new GenIntSequentialDistribution(nodes));
+                        raise(3, startNodeOp, new GenIntSequentialDistribution(new Integer[]{10, 13, 17}));
                     }
                 };
 
@@ -298,8 +289,8 @@ public class SwimScenario {
                 startPeers.startAfterTerminationOf(1000, startAggregator);
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-                disconnectedNodes1.startAfterTerminationOf(5000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(50000, startPeers);
+//                disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(30*1000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
 
             }
