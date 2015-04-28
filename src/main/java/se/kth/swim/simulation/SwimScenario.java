@@ -18,22 +18,12 @@
  */
 package se.kth.swim.simulation;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import org.javatuples.Pair;
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
 import se.kth.swim.croupier.CroupierConfig;
 import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
-import se.sics.p2ptoolbox.simulator.cmd.impl.ChangeNetworkModelCmd;
-import se.sics.p2ptoolbox.simulator.cmd.impl.SimulationResult;
-import se.sics.p2ptoolbox.simulator.cmd.impl.StartAggregatorCmd;
-import se.sics.p2ptoolbox.simulator.cmd.impl.StartNodeCmd;
-import se.sics.p2ptoolbox.simulator.cmd.impl.KillNodeCmd;
+import se.sics.p2ptoolbox.simulator.cmd.impl.*;
 import se.sics.p2ptoolbox.simulator.core.network.NetworkModel;
 import se.sics.p2ptoolbox.simulator.core.network.impl.DeadLinkNetworkModel;
 import se.sics.p2ptoolbox.simulator.core.network.impl.DisconnectedNodesNetworkModel;
@@ -42,16 +32,25 @@ import se.sics.p2ptoolbox.simulator.dsl.SimulationScenario;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation1;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.ConstantDistribution;
-import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.GenIntSequentialDistribution;
+import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.BasicIntSequentialDistribution;
 import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
 public class SwimScenario {
+
+    private static final int NUMBER_OF_NODES = 3;
 
     private static long seed;
     private static InetAddress localHost;
@@ -253,7 +252,7 @@ public class SwimScenario {
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(3, startNodeOp, new GenIntSequentialDistribution(new Integer[]{10, 13, 17}));
+                        raise(NUMBER_OF_NODES, startNodeOp, new BasicIntSequentialDistribution(10));
                     }
                 };
 

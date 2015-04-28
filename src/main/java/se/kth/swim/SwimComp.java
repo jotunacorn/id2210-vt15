@@ -100,10 +100,7 @@ public class SwimComp extends ComponentDefinition {
         public void handle(Start event) {
             log.info("{} starting...", new Object[]{selfAddress.getId()});
 
-            if (nodeHandler.getRandomAliveNode() != null) {
-                schedulePeriodicPing();
-            }
-
+            schedulePeriodicPing();
             schedulePeriodicStatus();
         }
 
@@ -167,7 +164,7 @@ public class SwimComp extends ComponentDefinition {
                 sentIndirectPings.remove(event.getContent().getPingNr());
             }
 
-            //nodeHandler.printAliveNodes();
+            nodeHandler.printAliveNodes();
         }
 
     };
@@ -185,6 +182,8 @@ public class SwimComp extends ComponentDefinition {
             log.info("{} sending pong nr {} to :{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getSource()});
             Pong pong = nodeHandler.getPong(event.getContent().getPingNr(), incarnationCounter);
             trigger(new NetPong(selfAddress, event.getSource(), pong), network);
+
+            nodeHandler.printAliveNodes();
         }
 
     };
