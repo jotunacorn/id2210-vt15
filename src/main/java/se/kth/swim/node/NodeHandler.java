@@ -58,14 +58,14 @@ public class NodeHandler {
     }
 
     private void addToPingList(NatedAddress address) {
-        int insertIndex = (int)(pingList.size()*Math.random());
+        int insertIndex = (int) (pingList.size() * Math.random());
         pingList.add(insertIndex, address);
 
     }
 
     /**
      * Copy of addAlive with <= on incarnation counter.
-     * */
+     */
     public void addDefinatelyAlive(NatedAddress address, int counter) {
         if (address.equals(selfAddress)) { //Never add self to lists.
             return;
@@ -155,12 +155,13 @@ public class NodeHandler {
     }
 
     public NatedAddress getRandomAliveNode() {
-        if(pingList.isEmpty() || pingIndex>=pingList.size()){
+        if (pingList.isEmpty() || pingIndex >= pingList.size()) {
+            pingList.clear();
             pingList.addAll(aliveNodes.keySet());
             Collections.shuffle(pingList);
             pingIndex = 0;
         }
-        if(pingList.isEmpty()) {
+        if (pingList.isEmpty()) {
             return null;
         }
         NatedAddress returnAddress = pingList.get(pingIndex);
