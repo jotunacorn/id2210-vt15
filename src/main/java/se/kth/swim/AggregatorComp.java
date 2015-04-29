@@ -105,9 +105,9 @@ public class AggregatorComp extends ComponentDefinition {
             for (NatedAddress address : statusesForNr.keySet()) {
                 Status status = statusesForNr.get(address);
 
-                allAliveNodes.addAll(status.getAliveNodes().keySet());
-
                 status.getAliveNodes().put(address, 0);
+
+                allAliveNodes.addAll(status.getAliveNodes().keySet());
 
                 if (commonAliveNodes == null) {
                     commonAliveNodes = new HashSet<>(status.getAliveNodes().keySet());
@@ -118,6 +118,11 @@ public class AggregatorComp extends ComponentDefinition {
             }
 
             double convergenceRate = (double) commonAliveNodes.size() / (double) Math.max(1, allAliveNodes.size());
+
+            if (convergenceRate > 1) {
+                convergenceRate = 1 / convergenceRate;
+            }
+
             log.info("alive nodes is " + commonAliveNodes.size() + " all alive is " + allAliveNodes.size());
             convergenceByStatusNr.put(statusNr, convergenceRate);
         }

@@ -21,6 +21,7 @@ package se.kth.swim.simulation;
 import org.javatuples.Pair;
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
+import se.kth.swim.SwimComp;
 import se.kth.swim.croupier.CroupierConfig;
 import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.*;
@@ -32,7 +33,9 @@ import se.sics.p2ptoolbox.simulator.dsl.SimulationScenario;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation1;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.ConstantDistribution;
+import se.sics.p2ptoolbox.simulator.dsl.distribution.Distribution;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.BasicIntSequentialDistribution;
+import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.IntegerUniformDistribution;
 import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
@@ -40,23 +43,23 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
 public class SwimScenario {
 
-    private static final int NUMBER_OF_NODES = 1000;
-    private static final int BOOTSTRAP_SIZE = 20;
+    private static final int NUMBER_OF_NODES = 10;
+    private static final int BOOTSTRAP_SIZE = 2;
 
     private static long seed;
     private static InetAddress localHost;
 
-    private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 2000, 1000); 
+    private static Set<Integer> killedNodes;
+
+    private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 2000, 1000);
+
     static {
         try {
             localHost = InetAddress.getByName("127.0.0.1");
@@ -81,22 +84,6 @@ public class SwimScenario {
         deadLinks.add(Pair.with(12, 10));
         deadLinks.add(Pair.with(13, 10));
         deadLinksSets.put(2, deadLinks);
-    }
-
-    //Make sure disconnected nodes reflect your nodes in the system
-    private static final Map<Integer, Set<Integer>> disconnectedNodesSets = new HashMap<Integer, Set<Integer>>();
-
-    static {
-        Set<Integer> disconnectedNodes;
-
-        disconnectedNodes = new HashSet<Integer>();
-        disconnectedNodes.add(10);
-        disconnectedNodesSets.put(1, disconnectedNodes);
-
-        disconnectedNodes = new HashSet<Integer>();
-        disconnectedNodes.add(10);
-        disconnectedNodes.add(12);
-        disconnectedNodesSets.put(2, disconnectedNodes);
     }
 
     static Operation1<StartAggregatorCmd, Integer> startAggregatorOp = new Operation1<StartAggregatorCmd, Integer>() {
@@ -140,18 +127,18 @@ public class SwimScenario {
 
                 @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
-                    if (nodeId % 2 == 0) {
-                        //open address
-                        nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
-                    } else {
-                        //nated address
-                        nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
-                    }
+                    //if (nodeId % 2 == 0) {
+                    //open address
+                    nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
+                    //} else {
+                    //nated address
+                    //  nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
+                    //}
                     /**
                      * we don't want all nodes to start their pseudo random
                      * generators with same seed else they might behave the same
                      */
-                    long nodeSeed = seed + nodeId ;
+                    long nodeSeed = seed + nodeId;
                     return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed, croupierConfig);
                 }
 
@@ -177,8 +164,10 @@ public class SwimScenario {
     static Operation1<KillNodeCmd, Integer> killNodeOp = new Operation1<KillNodeCmd, Integer>() {
 
         public KillNodeCmd generate(final Integer nodeId) {
+            SwimComp.log.info("Killing node {}", nodeId);
             return new KillNodeCmd() {
                 public Integer getNodeId() {
+                    killedNodes.add(nodeId);
                     return nodeId;
                 }
             };
@@ -203,7 +192,7 @@ public class SwimScenario {
         @Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
             NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
-            NetworkModel compositeNetworkModel = new DisconnectedNodesNetworkModel(setIndex, baseNetworkModel, disconnectedNodesSets.get(setIndex));
+            NetworkModel compositeNetworkModel = new DisconnectedNodesNetworkModel(setIndex, baseNetworkModel, null);//disconnectedNodesSets.get(setIndex));
             return new ChangeNetworkModelCmd(compositeNetworkModel);
         }
     };
@@ -241,6 +230,9 @@ public class SwimScenario {
     //you can implement your own - by extending Distribution
     public static SimulationScenario simpleBoot(final long seed) {
         SwimScenario.seed = seed;
+
+        killedNodes = new HashSet<>();
+
         SimulationScenario scen = new SimulationScenario() {
             {
                 StochasticProcess startAggregator = new StochasticProcess() {
@@ -259,8 +251,8 @@ public class SwimScenario {
 
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(1000));
-                        raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
+                        eventInterArrivalTime(constant(0));
+                        raise(5, killNodeOp, new RandomDistribution(getNodesToKill(10)));
                     }
                 };
 
@@ -287,10 +279,10 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-//                stopPeers.startAfterTerminationOf(10000, startPeers);
-//                deadLinks1.startAfterTerminationOf(10000,startPeers);
-//                disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(50*10000, startPeers);
+                killPeers.startAfterTerminationOf(90 * 1000, startPeers);
+                // deadLinks1.startAfterTerminationOf(10000,startPeers);
+                //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(200 * 1000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
 
             }
@@ -300,4 +292,40 @@ public class SwimScenario {
 
         return scen;
     }
+
+
+    private static Set<Integer> getNodesToKill(int count) {
+        Set<Integer> nodesToKill = new HashSet<>();
+
+        while (nodesToKill.size() < count && (nodesToKill.size() + killedNodes.size()) < NUMBER_OF_NODES) {
+            int nodeNumber = (int) (Math.random() * NUMBER_OF_NODES + 10);
+
+            if (!killedNodes.contains(nodeNumber)) {
+                nodesToKill.add(nodeNumber);
+            }
+        }
+
+        return nodesToKill;
+    }
+
+    static class RandomDistribution extends Distribution<Integer> {
+
+        private LinkedList<Integer> nodesToKill;
+
+        public RandomDistribution(Set<Integer> nodesToKill) {
+            super(Type.OTHER, Integer.class);
+
+            this.nodesToKill = new LinkedList<>(nodesToKill);
+        }
+
+        protected RandomDistribution(Type type, Class<Integer> numberType) {
+            super(type, numberType);
+        }
+
+        @Override
+        public Integer draw() {
+            return nodesToKill.pollFirst();
+        }
+    }
+
 }
