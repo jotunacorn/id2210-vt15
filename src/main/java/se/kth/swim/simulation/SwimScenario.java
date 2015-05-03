@@ -53,6 +53,7 @@ public class SwimScenario {
     private static final int NUMBER_OF_NODES = 10;
     private static final int BOOTSTRAP_SIZE = 2;
     private static final int KILL_SIZE = 5;
+    private static final boolean ALLOW_NAT = false;
 
     private static long seed;
     private static InetAddress localHost;
@@ -128,13 +129,18 @@ public class SwimScenario {
 
                 @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
-                    //if (nodeId % 2 == 0) {
-                    //open address
-                    nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
-                    //} else {
-                    //nated address
-                    //  nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
-                    //}
+                    if(ALLOW_NAT) {
+                        if (nodeId % 2 == 0) {
+                            //open address
+                            nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
+                        } else {
+                            //nated address
+                            nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
+                        }
+                    }
+                    else{
+                        nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
+                    }
                     /**
                      * we don't want all nodes to start their pseudo random
                      * generators with same seed else they might behave the same
