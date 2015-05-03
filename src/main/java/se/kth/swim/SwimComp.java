@@ -45,7 +45,7 @@ public class SwimComp extends ComponentDefinition {
     private static final int PING_TIMEOUT = 2000; //Time until a node is suspected
     private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
-    private static final boolean ENABLE_LOGGING = false;
+    private static final boolean ENABLE_LOGGING = true;
     private static final int K = 1;
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);

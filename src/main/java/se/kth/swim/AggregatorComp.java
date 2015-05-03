@@ -32,6 +32,9 @@ import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 /**
@@ -79,8 +82,8 @@ public class AggregatorComp extends ComponentDefinition {
 
         @Override
         public void handle(NetStatus status) {
-            log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}",
-                    new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings});
+            //log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}",
+            //        new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings});
 
             Map<NatedAddress, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
 
@@ -94,6 +97,15 @@ public class AggregatorComp extends ComponentDefinition {
     };
 
     public static void calculateConvergence() {
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter("convergance.txt", "UTF-8");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
         Map<Integer, Double> convergenceByStatusNr = new HashMap<>();
 
         for (int statusNr : statuses.keySet()) {
@@ -129,7 +141,9 @@ public class AggregatorComp extends ComponentDefinition {
 
         for (int statusNr : convergenceByStatusNr.keySet()) {
             SwimComp.log.info("Convergence at iteration {}: {}", statusNr, convergenceByStatusNr.get(statusNr));
+            writer.println(convergenceByStatusNr.get(statusNr));
         }
+        writer.close();
     }
 
     public static class AggregatorInit extends Init<AggregatorComp> {

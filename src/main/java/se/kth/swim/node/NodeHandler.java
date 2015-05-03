@@ -8,7 +8,7 @@ import java.util.*;
 
 
 public class NodeHandler {
-    private static final int MESSAGE_SIZE = 10;
+    private static final int MESSAGE_SIZE = 10000;
     private static final int LAMBDA = 3;
 
     private NatedAddress selfAddress;
