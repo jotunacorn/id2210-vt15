@@ -53,7 +53,7 @@ public class SwimScenario {
     private static final int NUMBER_OF_NODES = 10;
     private static final int BOOTSTRAP_SIZE = 2;
     private static final int KILL_SIZE = 5;
-    private static final boolean ALLOW_NAT = false;
+    private static final boolean ALLOW_NAT = true;
 
     private static long seed;
     private static InetAddress localHost;
@@ -258,8 +258,8 @@ public class SwimScenario {
 
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(10*1000));
-                        raise(10, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
+                        eventInterArrivalTime(constant(0*1000));
+                        raise(KILL_SIZE, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
                     }
                 };
 
@@ -286,7 +286,7 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-               // killPeers.startAfterTerminationOf(175 * 1000, startPeers);
+                killPeers.startAfterTerminationOf(50 * 1000, startPeers);
                 // deadLinks1.startAfterTerminationOf(10000,startPeers);
                 //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
                 fetchSimulationResult.startAfterTerminationOf(100 * 1000, startPeers);
