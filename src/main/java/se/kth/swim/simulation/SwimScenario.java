@@ -50,9 +50,9 @@ import java.util.*;
  */
 public class SwimScenario {
 
-    private static final int NUMBER_OF_NODES = 10;
+    private static final int NUMBER_OF_NODES = 20;
     private static final int BOOTSTRAP_SIZE = 2;
-    private static final int KILL_SIZE = 5;
+    private static final int KILL_SIZE = 2;
     private static final boolean ALLOW_NAT = true;
 
     private static long seed;
@@ -286,7 +286,7 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                //killPeers.startAfterTerminationOf(50 * 1000, startPeers);
+                killPeers.startAfterTerminationOf(50 * 1000, startPeers);
                 // deadLinks1.startAfterTerminationOf(10000,startPeers);
                 //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
                 fetchSimulationResult.startAfterTerminationOf(100 * 1000, startPeers);

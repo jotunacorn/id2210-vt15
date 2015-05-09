@@ -45,7 +45,7 @@ public class SwimComp extends ComponentDefinition {
     private static final int PING_TIMEOUT = 2000; //Time until a node is suspected
     private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
-    private static final boolean ENABLE_LOGGING = true;
+    private static final boolean ENABLE_LOGGING = false;
     private static final int K = 1;
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
@@ -53,6 +53,7 @@ public class SwimComp extends ComponentDefinition {
     private Positive<Timer> timer = requires(Timer.class);
 
     private final NatedAddress selfAddress;
+    private int lastSelfHash = 0;
     private final NatedAddress aggregatorAddress;
 
     private UUID pingTimeoutId;
@@ -84,6 +85,7 @@ public class SwimComp extends ComponentDefinition {
             nodeHandler.addAlive(address, 0);
         }
         nodeHandler.printAliveNodes();
+        lastSelfHash = selfAddress.hashCode();
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handlePing, network);
@@ -196,6 +198,16 @@ public class SwimComp extends ComponentDefinition {
             nodeHandler.printAliveNodes();
         }
 
+    };
+    private Handler<NetNewParentAlert> handleNewParent = new Handler<NetNewParentAlert>() {
+        @Override
+        public void handle(NetNewParentAlert event) {
+            selfAddress.getParents().clear();
+            selfAddress.getParents().addAll(event.getContent().getAddress().getParents());
+            log.info("New parent arrived!");
+            nodeHandler.addDefinatelyAlive(selfAddress,incarnationCounter);
+            lastSelfHash = selfAddress.hashCode();
+        }
     };
 
     private Handler<NetAlive> handleAlive = new Handler<NetAlive>() {

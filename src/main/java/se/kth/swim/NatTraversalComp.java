@@ -28,6 +28,7 @@ import se.kth.swim.croupier.util.Container;
 import se.kth.swim.msg.net.NetMsg;
 import se.kth.swim.msg.net.NetNatPing;
 import se.kth.swim.msg.net.NetNatPong;
+import se.kth.swim.msg.net.NetNewParentAlert;
 import se.kth.swim.timeouts.PingTimeout;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -178,7 +179,7 @@ public class NatTraversalComp extends ComponentDefinition {
 
     private Handler handleCroupierSample = new Handler<CroupierSample>() {
         @Override
-        public void handle(CroupierSample event) {/*
+        public void handle(CroupierSample event) {
             log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
             if (!selfAddress.isOpen()) {
                 //use this to change parent in case it died
@@ -190,18 +191,23 @@ public class NatTraversalComp extends ComponentDefinition {
 
                 List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers);
                 Collections.shuffle(samplePeerList);
+                boolean listUpdated = false;
                 for (NatedAddress address : samplePeerList) {
                     if (selfAddress.getParents().size() >= PARENTS_COUNT) {
                         break;
                     }
 
                     if (!address.equals(selfAddress)) {
+                        listUpdated = true;
                         selfAddress.getParents().add(address);
                     }
                 }
+                if(listUpdated){
+                    trigger(new NetNewParentAlert(selfAddress,selfAddress,selfAddress), network);
+                }
 
             }
-            */
+
         }
     };
 
