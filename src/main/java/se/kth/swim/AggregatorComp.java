@@ -85,8 +85,8 @@ public class AggregatorComp extends ComponentDefinition {
 
         @Override
         public void handle(NetStatus status) {
-            //log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}",
-            //        new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings});
+            //log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}, Alive nodes: {}",
+            //        new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings, status.getContent().getAliveNodes()});
 
             Map<Address, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
 
@@ -95,7 +95,7 @@ public class AggregatorComp extends ComponentDefinition {
                 statuses.put(status.getContent().getStatusNr(), statusesFromNode);
             }
 
-            statusesFromNode.put(status.getSource(), status.getContent());
+            statusesFromNode.put(status.getSource().getBaseAdr(), status.getContent());
         }
     };
 
@@ -103,9 +103,8 @@ public class AggregatorComp extends ComponentDefinition {
         PrintWriter writer = null;
         try {
             writer = new PrintWriter("convergance.txt", "UTF-8");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
+        }
+        catch (FileNotFoundException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
@@ -120,8 +119,7 @@ public class AggregatorComp extends ComponentDefinition {
             for (Address address : statusesForNr.keySet()) {
                 Status status = statusesForNr.get(address);
 
-                BasicAddress basicAddress = new BasicAddress(address.getIp(), 0, 0);
-                NatedAddress natedAddress = new BasicNatedAddress(basicAddress);
+                NatedAddress natedAddress = new BasicNatedAddress((BasicAddress) address);
                 status.getAliveNodes().put(natedAddress, 0);
 
                 allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
@@ -150,9 +148,10 @@ public class AggregatorComp extends ComponentDefinition {
         }
         writer.close();
     }
-    private static Set<Address> convertToAddress(Set<NatedAddress> nodes){
+
+    private static Set<Address> convertToAddress(Set<NatedAddress> nodes) {
         Set<Address> addresses = new HashSet<>();
-        for(NatedAddress node : nodes){
+        for (NatedAddress node : nodes) {
             addresses.add(node.getBaseAdr());
         }
         return addresses;
