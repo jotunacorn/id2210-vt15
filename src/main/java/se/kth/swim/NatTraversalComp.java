@@ -178,7 +178,7 @@ public class NatTraversalComp extends ComponentDefinition {
 
     private Handler handleCroupierSample = new Handler<CroupierSample>() {
         @Override
-        public void handle(CroupierSample event) {
+        public void handle(CroupierSample event) {/*
             log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
             if (!selfAddress.isOpen()) {
                 //use this to change parent in case it died
@@ -199,7 +199,9 @@ public class NatTraversalComp extends ComponentDefinition {
                         selfAddress.getParents().add(address);
                     }
                 }
+
             }
+            */
         }
     };
 

@@ -28,9 +28,12 @@ import se.sics.kompics.Init;
 import se.sics.kompics.Positive;
 import se.sics.kompics.Start;
 import se.sics.kompics.Stop;
+import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
+import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -48,7 +51,7 @@ public class AggregatorComp extends ComponentDefinition {
 
     private final NatedAddress selfAddress;
 
-    public static Map<Integer, Map<NatedAddress, Status>> statuses;
+    public static Map<Integer, Map<Address, Status>> statuses;
 
     public AggregatorComp(AggregatorInit init) {
         this.selfAddress = init.selfAddress;
@@ -85,7 +88,7 @@ public class AggregatorComp extends ComponentDefinition {
             //log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}",
             //        new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings});
 
-            Map<NatedAddress, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
+            Map<Address, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
 
             if (statusesFromNode == null) {
                 statusesFromNode = new HashMap<>();
@@ -109,23 +112,25 @@ public class AggregatorComp extends ComponentDefinition {
         Map<Integer, Double> convergenceByStatusNr = new HashMap<>();
 
         for (int statusNr : statuses.keySet()) {
-            Map<NatedAddress, Status> statusesForNr = statuses.get(statusNr);
+            Map<Address, Status> statusesForNr = statuses.get(statusNr);
 
-            Set<NatedAddress> allAliveNodes = new HashSet<>();
-            Set<NatedAddress> commonAliveNodes = null;
+            Set<Address> allAliveNodes = new HashSet<>();
+            Set<Address> commonAliveNodes = null;
 
-            for (NatedAddress address : statusesForNr.keySet()) {
+            for (Address address : statusesForNr.keySet()) {
                 Status status = statusesForNr.get(address);
 
-                status.getAliveNodes().put(address, 0);
+                BasicAddress basicAddress = new BasicAddress(address.getIp(), 0, 0);
+                NatedAddress natedAddress = new BasicNatedAddress(basicAddress);
+                status.getAliveNodes().put(natedAddress, 0);
 
-                allAliveNodes.addAll(status.getAliveNodes().keySet());
+                allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
 
                 if (commonAliveNodes == null) {
-                    commonAliveNodes = new HashSet<>(status.getAliveNodes().keySet());
+                    commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
                 }
                 else {
-                    commonAliveNodes.retainAll(status.getAliveNodes().keySet());
+                    commonAliveNodes.retainAll(convertToAddress(status.getAliveNodes().keySet()));
                 }
             }
 
@@ -144,6 +149,13 @@ public class AggregatorComp extends ComponentDefinition {
             writer.println(convergenceByStatusNr.get(statusNr));
         }
         writer.close();
+    }
+    private static Set<Address> convertToAddress(Set<NatedAddress> nodes){
+        Set<Address> addresses = new HashSet<>();
+        for(NatedAddress node : nodes){
+            addresses.add(node.getBaseAdr());
+        }
+        return addresses;
     }
 
     public static class AggregatorInit extends Init<AggregatorComp> {

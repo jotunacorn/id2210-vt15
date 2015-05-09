@@ -286,7 +286,7 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                killPeers.startAfterTerminationOf(50 * 1000, startPeers);
+                //killPeers.startAfterTerminationOf(50 * 1000, startPeers);
                 // deadLinks1.startAfterTerminationOf(10000,startPeers);
                 //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
                 fetchSimulationResult.startAfterTerminationOf(100 * 1000, startPeers);
