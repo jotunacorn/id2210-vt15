@@ -10,8 +10,8 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
  */
 public class NetNatPing extends NetMsg<NatPing> {
 
-    public NetNatPing(NatedAddress src, NatedAddress dst) {
-        super(src, dst, new NatPing());
+    public NetNatPing(NatedAddress src, NatedAddress dst, int pingNr) {
+        super(src, dst, new NatPing(pingNr));
     }
 
     private NetNatPing(Header<NatedAddress> header, NatPing content) {

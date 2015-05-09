@@ -85,8 +85,7 @@ public class AggregatorComp extends ComponentDefinition {
 
         @Override
         public void handle(NetStatus status) {
-            log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}, Alive nodes: {}",
-                    new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings, status.getContent().getAliveNodes()});
+            //(log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}, Alive nodes: {}", new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings, status.getContent().getAliveNodes()});
 
             Map<Address, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
 

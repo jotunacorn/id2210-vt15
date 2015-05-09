@@ -52,7 +52,7 @@ public class SwimScenario {
 
     private static final int NUMBER_OF_NODES = 20;
     private static final int BOOTSTRAP_SIZE = 2;
-    private static final int KILL_SIZE = 2;
+    private static final int KILL_SIZE = 5;
     private static final boolean ALLOW_NAT = true;
 
     private static long seed;

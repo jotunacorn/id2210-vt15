@@ -53,7 +53,6 @@ public class SwimComp extends ComponentDefinition {
     private Positive<Timer> timer = requires(Timer.class);
 
     private final NatedAddress selfAddress;
-    private int lastSelfHash = 0;
     private final NatedAddress aggregatorAddress;
 
     private UUID pingTimeoutId;
@@ -85,7 +84,6 @@ public class SwimComp extends ComponentDefinition {
             nodeHandler.addAlive(address, 0);
         }
         nodeHandler.printAliveNodes();
-        lastSelfHash = selfAddress.hashCode();
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handlePing, network);
@@ -93,10 +91,12 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleAlive, network);
         subscribe(handleNetKPing, network);
         subscribe(handleNetKPong, network);
+        subscribe(handleNewParent, network);
         subscribe(handlePingTimeout, timer);
         subscribe(handleStatusTimeout, timer);
         subscribe(handlePongTimeout, timer);
         subscribe(handleSuspectedTimeout, timer);
+
     }
 
     private Handler<Start> handleStart = new Handler<Start>() {
@@ -206,7 +206,6 @@ public class SwimComp extends ComponentDefinition {
             selfAddress.getParents().addAll(event.getContent().getAddress().getParents());
             log.info("New parent arrived!");
             nodeHandler.addDefinatelyAlive(selfAddress,incarnationCounter);
-            lastSelfHash = selfAddress.hashCode();
         }
     };
 
