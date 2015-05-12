@@ -4,11 +4,13 @@ import se.kth.swim.msg.NewParentAlert;
 import se.sics.kompics.network.Header;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
+import java.util.Set;
+
 /**
  * Created by Jotunn on 2015-05-09.
  */
 public class NetNewParentAlert extends NetMsg<NewParentAlert>{
-        public NetNewParentAlert(NatedAddress src, NatedAddress dst, NatedAddress newAddress) {
+        public NetNewParentAlert(NatedAddress src, NatedAddress dst, Set<NatedAddress> newAddress) {
             super(src, dst, new NewParentAlert(newAddress));
         }
 

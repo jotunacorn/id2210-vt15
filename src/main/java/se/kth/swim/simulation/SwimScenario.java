@@ -50,9 +50,9 @@ import java.util.*;
  */
 public class SwimScenario {
 
-    private static final int NUMBER_OF_NODES = 20;
-    private static final int BOOTSTRAP_SIZE = 2;
-    private static final int KILL_SIZE = 5;
+    private static final int NUMBER_OF_NODES = 50;
+    private static final int BOOTSTRAP_SIZE = 5;
+    private static final int KILL_SIZE = 20;
     private static final boolean ALLOW_NAT = true;
 
     private static long seed;
@@ -130,12 +130,14 @@ public class SwimScenario {
                 @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
                     if(ALLOW_NAT) {
-                        if (nodeId % 2 == 0) {
-                            //open address
-                            nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
-                        } else {
+                        if (nodeId % 3 == 0) {
+
                             //nated address
                             nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
+
+                        } else {
+                            //open address
+                            nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
                         }
                     }
                     else{
@@ -258,8 +260,8 @@ public class SwimScenario {
 
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(0*1000));
-                        raise(KILL_SIZE, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
+                        eventInterArrivalTime(constant(10*1000));
+                        raise(10, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
                     }
                 };
 
@@ -286,10 +288,10 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                killPeers.startAfterTerminationOf(50 * 1000, startPeers);
+                killPeers.startAfterTerminationOf(150 * 1000, startPeers);
                 // deadLinks1.startAfterTerminationOf(10000,startPeers);
                 //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(100 * 1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(250 * 1000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
 
             }

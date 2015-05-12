@@ -56,9 +56,9 @@ import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
  */
 public class NatTraversalComp extends ComponentDefinition {
 
-    private static final int HEARTBEAT_TIMEOUT = 2000;
-    private static final int PING_TIMEOUT = 2000;
-    private static final int PARENTS_COUNT = 2;
+    private static final int HEARTBEAT_TIMEOUT = 500;
+    private static final int PING_TIMEOUT = 500;
+    private static final int PARENTS_COUNT = 5;
 
 
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
@@ -73,6 +73,7 @@ public class NatTraversalComp extends ComponentDefinition {
     private int sentPings;
 
     private Set<Integer> pingedParents;
+    private Set<NatedAddress> latestParentSample;
     private Set<Address> deadParents; //Oh no
 
     public NatTraversalComp(NatTraversalInit init) {
@@ -83,7 +84,7 @@ public class NatTraversalComp extends ComponentDefinition {
 
         this.pingedParents = new HashSet<>();
         this.deadParents = new HashSet<>();
-
+        this.latestParentSample = new HashSet<>();
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
@@ -178,38 +179,48 @@ public class NatTraversalComp extends ComponentDefinition {
     private Handler handleCroupierSample = new Handler<CroupierSample>() {
         @Override
         public void handle(CroupierSample event) {
-            Set<NatedAddress> samplePeers = new HashSet<>();;
+            latestParentSample.clear();
             log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
             if (!selfAddress.isOpen()) {
                 //use this to change parent in case it died
                 Set<Container<NatedAddress, Object>> publicSample = new HashSet<>(event.publicSample);
                 for (Container<NatedAddress, Object> container : publicSample) {
-                    if(!deadParents.contains(container.getSource().getBaseAdr())) {
-                        samplePeers.add(container.getSource());
-                    }
+                    latestParentSample.add(container.getSource());
                 }
 
-                List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers);
-                Collections.shuffle(samplePeerList);
-                boolean listUpdated = false;
-                for (NatedAddress address : samplePeerList) {
-                    if (selfAddress.getParents().size() >= PARENTS_COUNT) {
-                        break;
-                    }
-
-                    if (!address.equals(selfAddress)) {
-                        listUpdated = true;
-                        selfAddress.getParents().add(address);
-                    }
-                }
-                if (listUpdated) {
-                    trigger(new NetNewParentAlert(selfAddress, selfAddress, selfAddress), network);
-                }
+                sendNewParents(latestParentSample);
 
             }
 
         }
     };
+
+    private void sendNewParents(Set<NatedAddress> inputPeers){
+        Set<NatedAddress> samplePeers = new HashSet<>();
+        for(NatedAddress node : inputPeers){
+            if(!deadParents.contains(node.getBaseAdr())) {
+                samplePeers.add(node);
+            }
+        }
+        List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers);
+        Collections.shuffle(samplePeerList);
+        boolean listUpdated = false;
+        for (NatedAddress address : samplePeerList) {
+            if (selfAddress.getParents().size() >= PARENTS_COUNT) {
+                break;
+            }
+
+            if (!address.equals(selfAddress)) {
+                listUpdated = true;
+                selfAddress.getParents().add(address);
+            }
+        }
+        if (listUpdated) {
+            Set<NatedAddress> setToSend = new HashSet<>(selfAddress.getParents());
+            log.info("Sending a new parent! The list is " + setToSend);
+            trigger(new NetNewParentAlert(selfAddress, selfAddress, setToSend), local);
+        }
+    }
 
     private Handler<NetNatPing> handlePing = new Handler<NetNatPing>() {
         @Override
@@ -256,8 +267,9 @@ public class NatTraversalComp extends ComponentDefinition {
                 log.info("Declaring node " + natPingTimeout.getAddress() + " dead. I'm node " + selfAddress);
                 deadParents.add(natPingTimeout.getAddress().getBaseAdr());
                 pingedParents.remove(natPingTimeout.getPingNr());
-
-                selfAddress.getParents().remove(natPingTimeout.getAddress());
+                if(selfAddress.getParents().remove(natPingTimeout.getAddress())) {
+                    sendNewParents(latestParentSample);
+                }
             }
         }
     };

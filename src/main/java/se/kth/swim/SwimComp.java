@@ -46,7 +46,7 @@ public class SwimComp extends ComponentDefinition {
     private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
     private static final boolean ENABLE_LOGGING = false;
-    private static final int K = 1;
+    private static final int K = 4;
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
     private Positive<Network> network = requires(Network.class);
@@ -203,8 +203,9 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(NetNewParentAlert event) {
             selfAddress.getParents().clear();
-            selfAddress.getParents().addAll(event.getContent().getAddress().getParents());
-            log.info("New parent arrived!");
+            selfAddress.getParents().addAll(event.getContent().getParents());
+            log.info("New parent arrived!" + " The parents are " + event.getContent().getParents());
+            incarnationCounter++;
             nodeHandler.addDefinatelyAlive(selfAddress,incarnationCounter);
         }
     };
@@ -322,7 +323,7 @@ public class SwimComp extends ComponentDefinition {
             //log.info("{} Suspected node timeout: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
             if (nodeHandler.addDead(suspectedTimeout.getAddress())) {
-                if(ENABLE_LOGGING)
+                if(ENABLE_LOGGING || true)
                 log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
 
                 //nodeHandler.printAliveNodes();
