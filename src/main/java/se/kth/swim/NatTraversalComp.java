@@ -56,9 +56,9 @@ import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
  */
 public class NatTraversalComp extends ComponentDefinition {
 
-    private static final int HEARTBEAT_TIMEOUT = 500;
-    private static final int PING_TIMEOUT = 500;
-    private static final int PARENTS_COUNT = 5;
+    private static final int HEARTBEAT_TIMEOUT = 500;   //Timeout between heartbeats
+    private static final int PING_TIMEOUT = 500;        //Timeout to receive a pong
+    private static final int PARENTS_COUNT = 5;         //How many parents each NATed node should have
 
 
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
@@ -70,11 +70,11 @@ public class NatTraversalComp extends ComponentDefinition {
     private final NatedAddress selfAddress;
     private final Random rand;
 
-    private int sentPings;
+    private int sentPings;                              //Number of times we have hearbeated
 
-    private Set<Integer> pingedParents;
-    private Set<NatedAddress> latestParentSample;
-    private Set<Address> deadParents; //Oh no
+    private Set<Integer> pingedParents;                 //Set of parents we've pinged but not received a pong from
+    private Set<NatedAddress> latestParentSample;       //Latest sample received from croupier
+    private Set<Address> deadParents;                   //Oh no! Set of parents declared dead
 
     public NatTraversalComp(NatTraversalInit init) {
         this.selfAddress = init.selfAddress;
@@ -175,7 +175,7 @@ public class NatTraversalComp extends ComponentDefinition {
         }
 
     };
-
+    //Handler to receive new sample from croupier in
     private Handler handleCroupierSample = new Handler<CroupierSample>() {
         @Override
         public void handle(CroupierSample event) {
@@ -185,10 +185,10 @@ public class NatTraversalComp extends ComponentDefinition {
                 //use this to change parent in case it died
                 Set<Container<NatedAddress, Object>> publicSample = new HashSet<>(event.publicSample);
                 for (Container<NatedAddress, Object> container : publicSample) {
-                    latestParentSample.add(container.getSource());
+                    latestParentSample.add(container.getSource()); //Add all received sources to a set
                 }
 
-                sendNewParents(latestParentSample);
+                sendNewParents(latestParentSample);                 //Update our parents if someone has died
 
             }
 
@@ -197,15 +197,15 @@ public class NatTraversalComp extends ComponentDefinition {
 
     private void sendNewParents(Set<NatedAddress> inputPeers){
         Set<NatedAddress> samplePeers = new HashSet<>();
-        for(NatedAddress node : inputPeers){
+        for(NatedAddress node : inputPeers){ //Filter out the dead parents
             if(!deadParents.contains(node.getBaseAdr())) {
                 samplePeers.add(node);
             }
         }
-        List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers);
+        List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers); //Create a list to retrieve peers from
         Collections.shuffle(samplePeerList);
-        boolean listUpdated = false;
-        for (NatedAddress address : samplePeerList) {
+        boolean listUpdated = false;                                      //Boolean which gets set to true if a parent has been replaced
+        for (NatedAddress address : samplePeerList) {                     //Loop the list and break if we have enough parents
             if (selfAddress.getParents().size() >= PARENTS_COUNT) {
                 break;
             }
@@ -215,13 +215,13 @@ public class NatTraversalComp extends ComponentDefinition {
                 selfAddress.getParents().add(address);
             }
         }
-        if (listUpdated) {
+        if (listUpdated) {                                              //Send the parents to SwimComp if we have new parents
             Set<NatedAddress> setToSend = new HashSet<>(selfAddress.getParents());
             log.info("Sending a new parent! The list is " + setToSend);
             trigger(new NetNewParentAlert(selfAddress, selfAddress, setToSend), local);
         }
     }
-
+    //Handler to answer to heartbeats in.
     private Handler<NetNatPing> handlePing = new Handler<NetNatPing>() {
         @Override
         public void handle(NetNatPing netNatPing) {
@@ -230,7 +230,7 @@ public class NatTraversalComp extends ComponentDefinition {
             trigger(new NetNatPong(selfAddress, netNatPing.getSource(), netNatPing.getContent().getPingNr()), network);
         }
     };
-
+    //Handler to receive Pongs in. If we receive a pong we remove the node from pingedParents
     private Handler<NetNatPong> handlePong = new Handler<NetNatPong>() {
         @Override
         public void handle(NetNatPong netNatPong) {
@@ -238,7 +238,7 @@ public class NatTraversalComp extends ComponentDefinition {
             pingedParents.remove(netNatPong.getContent().getPingNr());
         }
     };
-
+    //Handler to send pings from. We loop through all parents and ping them.
     private Handler<HeartbeatTimeout> handleHeartbeatTimeout = new Handler<HeartbeatTimeout>() {
         @Override
         public void handle(HeartbeatTimeout heartbeatTimeout) {
@@ -259,7 +259,7 @@ public class NatTraversalComp extends ComponentDefinition {
             }
         }
     };
-
+    //handler to handle timed out pings in. If a node still is in the pingedParents Set it's declared dead.
     private Handler<NatPingTimeout> handlePingTimeout = new Handler<NatPingTimeout>() {
         @Override
         public void handle(NatPingTimeout natPingTimeout) {
@@ -273,14 +273,14 @@ public class NatTraversalComp extends ComponentDefinition {
             }
         }
     };
-
+    //Handler to start scheduling pings
     private void scheduleHeartbeating() {
         SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(HEARTBEAT_TIMEOUT, HEARTBEAT_TIMEOUT);
         HeartbeatTimeout sc = new HeartbeatTimeout(spt);
         spt.setTimeoutEvent(sc);
         trigger(spt, timer);
     }
-
+    
     private NatedAddress randomNode(Set<NatedAddress> nodes) {
         int index = rand.nextInt(nodes.size());
         Iterator<NatedAddress> it = nodes.iterator();
