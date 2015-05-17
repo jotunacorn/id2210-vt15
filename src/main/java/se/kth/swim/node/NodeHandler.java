@@ -9,15 +9,25 @@ import java.util.*;
 
 
 public class NodeHandler {
-    private static final int MESSAGE_SIZE = 10000;
-    private static final int LAMBDA = 3;
+    private static final int MESSAGE_SIZE = 10000; //How many nodes piggybacked in each pong.
+    private static final int LAMBDA = 3; //How many times the node change is piggybacked. Lambda * log(n)
 
     private NatedAddress selfAddress;
 
+    //Maps containing our nodes. Key is address, value is incarnation counter.
     private Map<Address, Integer> aliveNodes, suspectedNodes, deadNodes;
+
+    //Keeps the mapping between Address and NatedAddress.
+    //Because NatedAddress hashcode changes when parents change we couldnt use it as a key to the previous map.
     private Map<Address, NatedAddress> addressMapping;
+
+    //Sendbuffer holding the recent node changes that are to be piggybacked.
     private Map<Address, NodeInfo> sendBuffer;
+
+    //List of nodes to ping. Used for the round robin pinging.
     private List<Address> pingList;
+
+    //Current index in list of nodes to ping in round robin.
     private int pingIndex;
 
     public NodeHandler(NatedAddress selfAddress) {
@@ -30,103 +40,150 @@ public class NodeHandler {
         pingList = new ArrayList<>();
     }
 
-    public void addAlive(NatedAddress address, int counter) {
-        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) { //Never add self to lists.
+    /**
+     * Called to add a node to the alive list.
+     * Will take incarnation counter into account and priorities between alive/suspected/dead nodes.
+     */
+    public void addAlive(NatedAddress address, int incarnationCounter) {
+        //Never add self to lists.
+        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) {
             return;
         }
 
+        //If the node already is in the alive list, maybe we want to update it.
         if (aliveNodes.containsKey(address.getBaseAdr())) {
-            if (aliveNodes.get(address.getBaseAdr()) < counter) { //If incarnation counter is lower, this is newer, update info.
-                aliveNodes.put(address.getBaseAdr(), counter);
+            //If incarnation counter is lower, this is newer, update info.
+            if (aliveNodes.get(address.getBaseAdr()) < incarnationCounter) {
+                aliveNodes.put(address.getBaseAdr(), incarnationCounter);
                 addressMapping.put(address.getBaseAdr(), address);
 
-                if (suspectedNodes.containsKey(address.getBaseAdr())) { //If node reported alive is suspected by us, remove it from suspected list.
+                //If node reported alive is suspected by us, remove it from suspected list.
+                if (suspectedNodes.containsKey(address.getBaseAdr())) {
                     suspectedNodes.remove(address.getBaseAdr());
                 }
 
-                if (sendBuffer.containsKey(address.getBaseAdr())) { //Also update counter in send queue
+                //Also update counter in send queue
+                if (sendBuffer.containsKey(address.getBaseAdr())) {
                     NodeInfo nodeInfo = sendBuffer.get(address.getBaseAdr());
-                    nodeInfo.setIncarnationCounter(counter);
+                    nodeInfo.setIncarnationCounter(incarnationCounter);
                     nodeInfo.setType(NodeInfo.Type.NEW);
                     sendBuffer.put(address.getBaseAdr(), nodeInfo);
                 }
             }
         }
-        else if (!deadNodes.containsKey(address.getBaseAdr())) { //Else add fresh entry
-            aliveNodes.put(address.getBaseAdr(), counter);
+        //If the node is not already in our alive list, but not declared dead, add it to alive list.
+        else if (!deadNodes.containsKey(address.getBaseAdr())) {
+            aliveNodes.put(address.getBaseAdr(), incarnationCounter);
             addressMapping.put(address.getBaseAdr(), address);
-            sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, counter, NodeInfo.Type.NEW));
+
+            //Also add it to send buffer because it is a new node.
+            sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.NEW));
+
+            //And add it to the round robin ping list.
             addToPingList(address);
         }
-
-        //printAliveNodes();
-    }
-
-    private void addToPingList(NatedAddress address) {
-        int insertIndex = (int) (pingList.size() * Math.random());
-        pingList.add(insertIndex, address);
-
     }
 
     /**
      * Copy of addAlive with <= on incarnation counter.
      */
-    public void addDefinatelyAlive(NatedAddress address, int counter) {
-        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) { //Never add self to lists.
+    public void addDefinatelyAlive(NatedAddress address, int incarnationCounter) {
+        //Never add self to lists.
+        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) {
             return;
         }
 
+        //If the node already is in the alive list, maybe we want to update it.
         if (aliveNodes.containsKey(address.getBaseAdr())) {
-            if (aliveNodes.get(address.getBaseAdr()) <= counter) { //If incarnation counter is lower, this is newer, update info.
-                aliveNodes.put(address.getBaseAdr(), counter);
+            //If incarnation counter is lower, this is newer, update info.
+            if (aliveNodes.get(address.getBaseAdr()) <= incarnationCounter) {
+                aliveNodes.put(address.getBaseAdr(), incarnationCounter);
                 addressMapping.put(address.getBaseAdr(), address);
 
-                if (suspectedNodes.containsKey(address.getBaseAdr())) { //If node reported alive is suspected by us, remove it from suspected list.
+                //If node reported alive is suspected by us, remove it from suspected list.
+                if (suspectedNodes.containsKey(address.getBaseAdr())) {
                     suspectedNodes.remove(address.getBaseAdr());
                 }
 
-                if (sendBuffer.containsKey(address.getBaseAdr())) { //Also update counter in send queue
+                //Also update counter in send queue
+                if (sendBuffer.containsKey(address.getBaseAdr())) {
                     NodeInfo nodeInfo = sendBuffer.get(address.getBaseAdr());
-                    nodeInfo.setIncarnationCounter(counter);
+                    nodeInfo.setIncarnationCounter(incarnationCounter);
                     nodeInfo.setType(NodeInfo.Type.NEW);
                     sendBuffer.put(address.getBaseAdr(), nodeInfo);
                 }
             }
         }
-        else if (!deadNodes.containsKey(address.getBaseAdr())) { //Else add fresh entry
-            aliveNodes.put(address.getBaseAdr(), counter);
+        //If the node is not already in our alive list, but not declared dead, add it to alive list.
+        else if (!deadNodes.containsKey(address.getBaseAdr())) {
+            aliveNodes.put(address.getBaseAdr(), incarnationCounter);
             addressMapping.put(address.getBaseAdr(), address);
-            sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, counter, NodeInfo.Type.NEW));
+
+            //Also add it to send buffer because it is a new node.
+            sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.NEW));
+
+            //And add it to the round robin ping list.
             addToPingList(address);
         }
     }
 
-    public void addSuspected(NatedAddress address, int counter) {
-        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) { //Never add self to lists.
+    /**
+     * Will add a node to the send buffer as a new node.
+     * Used when receiving new parents and we want to propagate them to other nodes.
+     */
+    public void addNodeToSendBuffer(NatedAddress address, int incarnationCounter) {
+        sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.NEW));
+    }
+
+    /**
+     * Helper function.
+     * Will add a node to a random position in the round robin ping list.
+     */
+    private void addToPingList(NatedAddress address) {
+        int insertIndex = (int) (pingList.size() * Math.random());
+        pingList.add(insertIndex, address);
+    }
+
+    /**
+     * Called to add a node to the suspected list.
+     * Will take incarnation counter into account and priorities between alive/suspected/dead nodes.
+     */
+    public void addSuspected(NatedAddress address, int incarnationCounter) {
+        //Never add self to lists.
+        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) {
             return;
         }
 
+        //If node is in the alive list.
         if (aliveNodes.containsKey(address.getBaseAdr())) {
-            if (aliveNodes.get(address.getBaseAdr()) <= counter) {
-                aliveNodes.put(address.getBaseAdr(), counter);
+            //If incarnation counter is lower, this is newer, update info.
+            if (aliveNodes.get(address.getBaseAdr()) <= incarnationCounter) {
+                aliveNodes.put(address.getBaseAdr(), incarnationCounter);
                 addressMapping.put(address.getBaseAdr(), address);
+
+                //If this node is not already suspected, also propagate it by adding it to the send buffer.
                 if (!suspectedNodes.containsKey(address.getBaseAdr())) {
-                    sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, counter, NodeInfo.Type.SUSPECTED));
+                    sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.SUSPECTED));
                 }
 
-                suspectedNodes.put(address.getBaseAdr(), counter);
+                suspectedNodes.put(address.getBaseAdr(), incarnationCounter);
             }
         }
+        //If node is not in alive list, and not dead add it to the alive list and the suspected list.
         else if (!deadNodes.containsKey(address.getBaseAdr())) {
-            aliveNodes.put(address.getBaseAdr(), counter);
+            aliveNodes.put(address.getBaseAdr(), incarnationCounter);
             addressMapping.put(address.getBaseAdr(), address);
-            suspectedNodes.put(address.getBaseAdr(), counter);
-            sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, counter, NodeInfo.Type.SUSPECTED));
-        }
+            suspectedNodes.put(address.getBaseAdr(), incarnationCounter);
 
-        //printAliveNodes();
+            //Add node to send buffer in order to propagate it.
+            sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.SUSPECTED));
+        }
     }
 
+    /**
+     * Adds a node to the suspected list. Will get the incarnation counter from alive list,
+     * as we dont get incarnation counter when we suspect nodes from ping timeout.
+     */
     public void addSuspected(NatedAddress address) {
         int incarnationCounter = 0;
 
@@ -136,23 +193,36 @@ public class NodeHandler {
 
         suspectedNodes.put(address.getBaseAdr(), incarnationCounter);
         addressMapping.put(address.getBaseAdr(), address);
-        //printAliveNodes();
+
+        //Add node to send buffer in order to propagate it.
+        sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.SUSPECTED));
     }
 
-    public void addDead(NatedAddress address, int counter) {
-        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) { //Never add self to lists.
+    /**
+     * Called to add a node to the dead list. As dead messages have priority over
+     * suspected and alive, incarnation counters are not compared.
+     */
+    public void addDead(NatedAddress address, int incarnationCounter) {
+        //Never add self to lists.
+        if (address.getBaseAdr().equals(selfAddress.getBaseAdr())) {
             return;
         }
 
         aliveNodes.remove(address.getBaseAdr());
         suspectedNodes.remove(address.getBaseAdr());
-        deadNodes.put(address.getBaseAdr(), counter);
-        sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, counter, NodeInfo.Type.DEAD));
+        deadNodes.put(address.getBaseAdr(), incarnationCounter);
         addressMapping.put(address.getBaseAdr(), address);
-        //printAliveNodes();
+
+        //Add node to send buffer in order to propagate it.
+        sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.DEAD));
     }
 
+    /**
+     * Called to add a node to the dead list when we dont have the incarnation counter, from timeout.
+     * Returns true if the node was successfully added to the dead list, used for logging.
+     */
     public boolean addDead(NatedAddress address) {
+        //Will only add the node to the dead list if it already was suspected.
         if (suspectedNodes.containsKey(address.getBaseAdr())) {
             addDead(address, 0);
 
@@ -162,6 +232,10 @@ public class NodeHandler {
         return false;
     }
 
+    /**
+     * Returns a random node from the alive list.
+     * Will return nodes in a round robin fashion, as described in the report.
+     */
     public NatedAddress getRandomAliveNode() {
         if (pingList.isEmpty() || pingIndex >= pingList.size()) {
             pingList.clear();
@@ -178,6 +252,9 @@ public class NodeHandler {
         return natedAddress;
     }
 
+    /**
+     * Generates a pong message with piggyback information.
+     */
     public Pong getPong(int pingNr, int incarnationCounter) {
         Map<Address, Integer> newNodesToSend = new HashMap<>();
         Map<Address, Integer> suspectedNodesToSend = new HashMap<>();
@@ -185,6 +262,7 @@ public class NodeHandler {
 
         List<NodeInfo> bufferAsList = new ArrayList<>(sendBuffer.values());
 
+        //Sort the send buffer so we prioritize items that are propagated the least amount of times.
         Collections.sort(bufferAsList, new Comparator<NodeInfo>() {
             @Override
             public int compare(NodeInfo o1, NodeInfo o2) {
@@ -201,6 +279,8 @@ public class NodeHandler {
         });
 
         int messageSizeCounter = 0;
+
+        //Get nodes from the send buffer, add them to the appropriate list and update sendcounters.
         for (NodeInfo nodeInfo : bufferAsList) {
             if (messageSizeCounter > MESSAGE_SIZE) {
                 break;
@@ -221,6 +301,7 @@ public class NodeHandler {
                     break;
             }
 
+            //If node was propagated enough times, remove it from the send buffer.
             if (nodeInfo.getSendCounter() > LAMBDA * Math.max(1, Math.log(Math.max(1, aliveNodes.size())))) {
                 sendBuffer.remove(nodeInfo.getAddress());
             }
@@ -230,30 +311,47 @@ public class NodeHandler {
         return new Pong(convertToNated(newNodesToSend), convertToNated(suspectedNodesToSend), convertToNated(deadNodesToSend), pingNr, incarnationCounter);
     }
 
+    /**
+     * Helper function, will print all alive, suspected and dead nodes.
+     */
     public void printAliveNodes() {
-        //SwimComp.log.info("{} Node status:\nAlive nodes({}): {}\nSuspected nodes: {}\nDead Nodes: {}", new Object[]{selfAddress.getId(), aliveNodes.size(),aliveNodes, suspectedNodes, deadNodes});
+        SwimComp.log.info("{} Node status:\nAlive nodes({}): {}\nSuspected nodes: {}\nDead Nodes: {}", new Object[]{selfAddress.getId(), aliveNodes.size(), aliveNodes, suspectedNodes, deadNodes});
     }
-    public Map<NatedAddress, Integer> convertToNated(Map<Address, Integer> nodes){
-        Map<NatedAddress,Integer> natedAddresses = new HashMap<>();
-        for(Address node : nodes.keySet()){
+
+    /**
+     * Helper function, will return a map of NatedAddresses, based on the Address input.
+     */
+    public Map<NatedAddress, Integer> convertToNated(Map<Address, Integer> nodes) {
+        Map<NatedAddress, Integer> natedAddresses = new HashMap<>();
+        for (Address node : nodes.keySet()) {
             NatedAddress address = addressMapping.get(node);
-            if(address != null) {
+            if (address != null) {
                 natedAddresses.put(address, nodes.get(node));
             }
         }
         return natedAddresses;
     }
 
-
+    /**
+     * Helper function will return a map of all alive nodes.
+     */
     public Map<NatedAddress, Integer> getAliveNodes() {
         return convertToNated(aliveNodes);
     }
 
+    /**
+     * Helper function will return a map of all dead nodes.
+     */
     public Map<NatedAddress, Integer> getDeadNodes() {
         return convertToNated(deadNodes);
     }
 
+
+    /**
+     * Helper function will return a map of all suspected nodes.
+     */
     public Map<NatedAddress, Integer> getSuspectedNodes() {
         return convertToNated(suspectedNodes);
     }
+
 }

@@ -60,7 +60,7 @@ public class SwimScenario {
 
     private static Set<Integer> killedNodes;
 
-    private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 2000, 1000);
+    private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 1000, 500);
 
     static {
         try {
@@ -260,8 +260,8 @@ public class SwimScenario {
 
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(10*1000));
-                        raise(10, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
+                        eventInterArrivalTime(constant(0*1000));
+                        raise(20, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
                     }
                 };
 

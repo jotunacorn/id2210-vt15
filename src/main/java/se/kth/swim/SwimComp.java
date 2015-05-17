@@ -46,7 +46,7 @@ public class SwimComp extends ComponentDefinition {
     private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
     private static final boolean ENABLE_LOGGING = false;
-    private static final int K = 4;
+    private static final int K = 4; //K value, how many nodes we K-ping if we suspect a node.
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
     private Positive<Network> network = requires(Network.class);
@@ -58,32 +58,42 @@ public class SwimComp extends ComponentDefinition {
     private UUID pingTimeoutId;
     private UUID statusTimeoutId;
 
+    //Various counters
     private int sentPings = 0;
     private int receivedPings = 0;
     private int incarnationCounter = 0;
     private int sentStatuses = 0;
 
+    //The NodeHandler is holding all information about nodes in the system.
+    //It provides an API to get and set nodes to the different lists in a consistent way.
     private NodeHandler nodeHandler;
 
+    //Collections holding information about what pings we sent.
     private List<Integer> sentPingNrs;
-
     private Map<Integer, NatedAddress> sentIndirectPings;
 
     public SwimComp(SwimInit init) {
-        if(ENABLE_LOGGING)
+        if (ENABLE_LOGGING) {
             log.info("{} initiating...", init.selfAddress);
+        }
 
         selfAddress = init.selfAddress;
         aggregatorAddress = init.aggregatorAddress;
 
         nodeHandler = new NodeHandler(selfAddress);
+
         sentPingNrs = new ArrayList<>();
         sentIndirectPings = new HashMap<>();
 
+        // Add all bootstrap nodes to our alive list.
         for (NatedAddress address : init.bootstrapNodes) {
             nodeHandler.addAlive(address, 0);
         }
-        nodeHandler.printAliveNodes();
+
+        if (ENABLE_LOGGING) {
+            nodeHandler.printAliveNodes();
+        }
+
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handlePing, network);
@@ -96,15 +106,19 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleStatusTimeout, timer);
         subscribe(handlePongTimeout, timer);
         subscribe(handleSuspectedTimeout, timer);
-
     }
 
+    /**
+     * Handler for starting the component.
+     * Will schedule the periodic pings and status messages.
+     */
     private Handler<Start> handleStart = new Handler<Start>() {
 
         @Override
         public void handle(Start event) {
-            if(ENABLE_LOGGING)
-            log.info("{} starting...", new Object[]{selfAddress.getId()});
+            if (ENABLE_LOGGING) {
+                log.info("{} starting...", new Object[]{selfAddress.getId()});
+            }
 
             schedulePeriodicPing();
             schedulePeriodicStatus();
@@ -112,12 +126,16 @@ public class SwimComp extends ComponentDefinition {
 
     };
 
+    /**
+     * Handler for stopping the component.
+     */
     private Handler<Stop> handleStop = new Handler<Stop>() {
 
         @Override
         public void handle(Stop event) {
-            if(ENABLE_LOGGING)
-            log.info("{} stopping...", new Object[]{selfAddress.getId()});
+            if (ENABLE_LOGGING) {
+                log.info("{} stopping...", new Object[]{selfAddress.getId()});
+            }
 
             if (pingTimeoutId != null) {
                 cancelPeriodicPing();
@@ -130,37 +148,50 @@ public class SwimComp extends ComponentDefinition {
 
     };
 
+    /**
+     * Handler for receiving pong messages.
+     * Will add sender node as alive and add all nodes in the piggybacked node data to our node data.
+     */
     private Handler<NetPong> handlePong = new Handler<NetPong>() {
 
         @Override
         public void handle(NetPong event) {
-            if(ENABLE_LOGGING)
-            log.info("{} received pong nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
+            if (ENABLE_LOGGING) {
+                log.info("{} received pong nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
+            }
 
+            //If the ping number of the pong was in the list of sent pings, it was a regular ping.
             boolean wasRegularPing = sentPingNrs.remove(Integer.valueOf(event.getContent().getPingNr()));
-
             if (wasRegularPing) {
+                //Add all new nodes to our alive list, taking incarnation numbers into account.
                 for (NatedAddress address : event.getContent().getNewNodes().keySet()) {
                     nodeHandler.addAlive(address, event.getContent().getNewNodes().get(address));
                 }
 
+                //Add all suspected nodes to our suspected list, taking incarnation numbers into account.
                 for (NatedAddress address : event.getContent().getSuspectedNodes().keySet()) {
                     nodeHandler.addSuspected(address, event.getContent().getSuspectedNodes().get(address));
                 }
 
+                //Add all dead nodes to the dead list.
                 for (NatedAddress address : event.getContent().getDeadNodes().keySet()) {
-                    if(ENABLE_LOGGING)
-                    log.info("{} Declared node {} dead from pong", new Object[]{selfAddress.getId(), address});
+                    if (ENABLE_LOGGING) {
+                        log.info("{} Declared node {} dead from pong", new Object[]{selfAddress.getId(), address});
+                    }
+
                     nodeHandler.addDead(address, event.getContent().getDeadNodes().get(address));
                 }
 
+                //Add the node who sent the pong to the alive list.
                 nodeHandler.addDefinatelyAlive(event.getSource(), event.getContent().getIncarnationCounter());
-                //log.info("{} Restored suspected node: {}", new Object[]{selfAddress.getId(), event.getSource()});
 
+                //If we find ourself in the suspected list
                 if (event.getContent().getSuspectedNodes().containsKey(selfAddress)) {
-                    if(ENABLE_LOGGING)
-                    log.info("{} Found self in suspected list from node: {}", new Object[]{selfAddress.getId(), event.getSource()});
+                    if (ENABLE_LOGGING) {
+                        log.info("{} Found self in suspected list from node: {}", new Object[]{selfAddress.getId(), event.getSource()});
+                    }
 
+                    //Increase the incarnation number and send Alive messages to all alive nodes.
                     incarnationCounter++;
 
                     for (NatedAddress address : nodeHandler.getAliveNodes().keySet()) {
@@ -168,66 +199,114 @@ public class SwimComp extends ComponentDefinition {
                     }
                 }
             }
+            //Otherwise, if not a regular ping it was a K-ping. Check if it is still in sent list.
             else if (sentIndirectPings.containsKey(event.getContent().getPingNr())) {
-                if(ENABLE_LOGGING)
-                log.info("{} forwarding KPing result for suspected node {} to: {}", new Object[]{selfAddress.getId(), event.getSource(), sentIndirectPings.get(event.getContent().getPingNr())});
+                if (ENABLE_LOGGING) {
+                    log.info("{} forwarding KPing result for suspected node {} to: {}", new Object[]{selfAddress.getId(), event.getSource(), sentIndirectPings.get(event.getContent().getPingNr())});
+                }
+
+                //If this was a response to a k-ping, forward the result to the requester node.
                 trigger(new NetKPong(selfAddress, sentIndirectPings.get(event.getContent().getPingNr()), event.getSource(), event.getContent().getIncarnationCounter()), network);
                 sentIndirectPings.remove(event.getContent().getPingNr());
             }
 
-            nodeHandler.printAliveNodes();
+            if (ENABLE_LOGGING) {
+                nodeHandler.printAliveNodes();
+            }
         }
 
     };
 
+    /**
+     * Handler for receiving ping messages.
+     * Will add sender to alive list and send a pong response.
+     */
     private Handler<NetPing> handlePing = new Handler<NetPing>() {
 
         @Override
         public void handle(NetPing event) {
-            if(ENABLE_LOGGING)
-            log.info("{} received ping nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
+            if (ENABLE_LOGGING) {
+                log.info("{} received ping nr {} from:{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getHeader().getSource()});
+            }
 
             receivedPings++;
 
+            //Add the sender node to the alive list
             nodeHandler.addDefinatelyAlive(event.getSource(), event.getContent().getIncarnationCounter());
-            if(ENABLE_LOGGING)
-            log.info("{} sending pong nr {} to :{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getSource()});
+
+            if (ENABLE_LOGGING) {
+                log.info("{} sending pong nr {} to :{}", new Object[]{selfAddress.getId(), event.getContent().getPingNr(), event.getSource()});
+            }
+
+            //Send a pong
             Pong pong = nodeHandler.getPong(event.getContent().getPingNr(), incarnationCounter);
             trigger(new NetPong(selfAddress, event.getSource(), pong), network);
 
-            nodeHandler.printAliveNodes();
+            if (ENABLE_LOGGING) {
+                nodeHandler.printAliveNodes();
+            }
         }
 
     };
+
+    /**
+     * Handler for receiving new parent nodes from the NatTraversal component.
+     * When NatTraversal component detects any of our parents died, it will provide us with new parent nodes.
+     * The new nodes will be added to the parent list and we will inform the other nodes by
+     * adding ourself as a new node.
+     */
     private Handler<NetNewParentAlert> handleNewParent = new Handler<NetNewParentAlert>() {
+
         @Override
         public void handle(NetNewParentAlert event) {
+            //If we get a new parent event, new parents from croupier, add them to self address
+            //and then add the updated information to the alive list.
             selfAddress.getParents().clear();
             selfAddress.getParents().addAll(event.getContent().getParents());
-            log.info("New parent arrived!" + " The parents are " + event.getContent().getParents());
+
+            if (ENABLE_LOGGING) {
+                log.info("New parent arrived!" + " The parents are " + event.getContent().getParents());
+            }
+
             incarnationCounter++;
-            nodeHandler.addDefinatelyAlive(selfAddress,incarnationCounter);
+
+            //Add self to the send buffer as a new node, so it will be propagated the next time someone ping us.
+            nodeHandler.addNodeToSendBuffer(selfAddress, incarnationCounter);
         }
+
     };
 
+    /**
+     * Handler for receiving alive messages.
+     * Will add the sender to our alive nodes.
+     */
     private Handler<NetAlive> handleAlive = new Handler<NetAlive>() {
 
         @Override
         public void handle(NetAlive netAlive) {
-            if(ENABLE_LOGGING)
-            log.info("{} Restored suspected node by alive message from: {}", new Object[]{selfAddress.getId(), netAlive.getSource()});
+            if (ENABLE_LOGGING) {
+                log.info("{} Restored suspected node by alive message from: {}", new Object[]{selfAddress.getId(), netAlive.getSource()});
+            }
 
+            //Upon receiving an alive message, add the node to the alive list. Will remove node from suspected list.
             nodeHandler.addAlive(netAlive.getSource(), netAlive.getContent().getIncarnationCounter());
         }
+
     };
 
+    /**
+     * Handler for receiving K-ping messages.
+     * Some node requests us to ping a node for them. Will send a ping to the requested node.
+     */
     private Handler<NetKPing> handleNetKPing = new Handler<NetKPing>() {
 
         @Override
         public void handle(NetKPing netKPing) {
-            if(ENABLE_LOGGING)
-            log.info("{} received KPing request for suspected node {}", new Object[]{selfAddress.getId(), netKPing.getContent().getAddressToPing()});
+            if (ENABLE_LOGGING) {
+                log.info("{} received KPing request for suspected node {}", new Object[]{selfAddress.getId(), netKPing.getContent().getAddressToPing()});
+            }
 
+            //When we get a K-ping request, send a ping to the node someone requests us to ping.
             trigger(new NetPing(selfAddress, netKPing.getContent().getAddressToPing(), sentPings, incarnationCounter), network);
             sentIndirectPings.put(sentPings, netKPing.getSource());
             sentPings++;
@@ -235,18 +314,32 @@ public class SwimComp extends ComponentDefinition {
 
     };
 
+    /**
+     * Handler for receiving K-ping response.
+     * Received if K-ping succeeded, will then add the requested node to the alive list.
+     */
     private Handler<NetKPong> handleNetKPong = new Handler<NetKPong>() {
 
         @Override
         public void handle(NetKPong netKPong) {
-            if(ENABLE_LOGGING)
-            log.info("{} received KPong for suspected node {}", new Object[]{selfAddress.getId(), netKPong.getContent().getAddress()});
+            if (ENABLE_LOGGING) {
+                log.info("{} received KPong for suspected node {}", new Object[]{selfAddress.getId(), netKPong.getContent().getAddress()});
+            }
+
+            //When getting a k-ping response (K-pong) add the node to the alive list again.
             nodeHandler.addDefinatelyAlive(netKPong.getContent().getAddress(), netKPong.getContent().getIncarnationCounter());
-            nodeHandler.printAliveNodes();
+
+            if (ENABLE_LOGGING) {
+                nodeHandler.printAliveNodes();
+            }
         }
 
     };
 
+    /**
+     * Handler for receiving ping timeout.
+     * This is triggering periodically for us to send a ping message to a random alive node.
+     */
     private Handler<PingTimeout> handlePingTimeout = new Handler<PingTimeout>() {
 
         @Override
@@ -254,16 +347,22 @@ public class SwimComp extends ComponentDefinition {
             NatedAddress partnerAddress = nodeHandler.getRandomAliveNode();
 
             if (partnerAddress != null) {
-                if(ENABLE_LOGGING)
-                log.info("{} sending ping nr {} to partner:{}", new Object[]{selfAddress.getId(), sentPings, partnerAddress});
+                if (ENABLE_LOGGING) {
+                    log.info("{} sending ping nr {} to partner:{}", new Object[]{selfAddress.getId(), sentPings, partnerAddress});
+                }
 
+                //Periodically send pings to a random alive node.
                 trigger(new NetPing(selfAddress, partnerAddress, sentPings, incarnationCounter), network);
 
+                //Start a timer for when the ping will timeout and we will suspect the node being dead.
                 ScheduleTimeout scheduleTimeout = new ScheduleTimeout(PING_TIMEOUT);
                 PongTimeout pongTimeout = new PongTimeout(scheduleTimeout, sentPings, partnerAddress);
                 scheduleTimeout.setTimeoutEvent(pongTimeout);
                 trigger(scheduleTimeout, timer);
 
+                //Remember which pings we have sent by saving ping number.
+                //Ping numbers will be included in the pong, so we can know which pong is
+                //answering to which ping.
                 sentPingNrs.add(sentPings);
 
                 sentPings++;
@@ -272,12 +371,20 @@ public class SwimComp extends ComponentDefinition {
 
     };
 
+    /**
+     * Handler for receiving status timeout.
+     * When received a status message is sent to the aggregator component.
+     * Status contains our alive, suspected and dead nodes.
+     */
     private Handler<StatusTimeout> handleStatusTimeout = new Handler<StatusTimeout>() {
 
         @Override
         public void handle(StatusTimeout event) {
-            if(ENABLE_LOGGING)
-            log.info("{} sending status nr:{} to aggregator:{}", new Object[]{selfAddress.getId(), sentStatuses, aggregatorAddress});
+            if (ENABLE_LOGGING) {
+                log.info("{} sending status nr:{} to aggregator:{}", new Object[]{selfAddress.getId(), sentStatuses, aggregatorAddress});
+            }
+
+            //Send a status with our alive, suspected and dead nodes to the aggregator component periodically.
             Map<NatedAddress, Integer> sendAliveNodes = new HashMap<>(nodeHandler.getAliveNodes());
             trigger(new NetStatus(selfAddress, aggregatorAddress, new Status(sentStatuses, receivedPings, sentPings, sendAliveNodes, nodeHandler.getSuspectedNodes(), nodeHandler.getDeadNodes())), network);
 
@@ -286,47 +393,62 @@ public class SwimComp extends ComponentDefinition {
 
     };
 
+    /**
+     * Handler for receiving pong timeout.
+     * This is the timeout we scheduled when sending a ping.
+     * If no response to the ping was received before this timeout, the node will become suspected.
+     * Will then send K-pings by asking K of its alive nodes to ping the node who didnt respond to the ping.
+     */
     private Handler<PongTimeout> handlePongTimeout = new Handler<PongTimeout>() {
 
         @Override
         public void handle(PongTimeout pongTimeout) {
+            //If ping timed out without any pong as response...
             if (sentPingNrs.contains(pongTimeout.getPingNr())) {
-                if(ENABLE_LOGGING)
-                log.info("{} Suspected missing ping nr {} from node: {}", new Object[]{selfAddress.getId(), pongTimeout.getPingNr(), pongTimeout.getAddress()});
+                if (ENABLE_LOGGING) {
+                    log.info("{} Suspected missing ping nr {} from node: {}", new Object[]{selfAddress.getId(), pongTimeout.getPingNr(), pongTimeout.getAddress()});
+                }
 
+                //Add the node to our suspected list.
                 nodeHandler.addSuspected(pongTimeout.getAddress());
 
+                //Get a random selection of our alive nodes to K-ping.
                 List<NatedAddress> aliveNodes = new ArrayList<>(nodeHandler.getAliveNodes().keySet());
                 aliveNodes.remove(pongTimeout.getAddress());
                 Collections.shuffle(aliveNodes);
 
+                //Send K indirect pings.
                 for (int i = 0; i < K && i < aliveNodes.size(); i++) {
-                    if(ENABLE_LOGGING)
-                    log.info("{} sending KPing for suspected node {} to: {}", new Object[]{selfAddress.getId(), pongTimeout.getAddress(), aliveNodes.get(i)});
+                    if (ENABLE_LOGGING) {
+                        log.info("{} sending KPing for suspected node {} to: {}", new Object[]{selfAddress.getId(), pongTimeout.getAddress(), aliveNodes.get(i)});
+                    }
+
                     trigger(new NetKPing(selfAddress, aliveNodes.get(i), pongTimeout.getAddress()), network);
                 }
 
+                //Start another timer for the K-pings to finnish before we declare the node dead.
                 ScheduleTimeout scheduleTimeout = new ScheduleTimeout(SUSPECTED_TIMEOUT);
                 SuspectedTimeout suspectedTimeout = new SuspectedTimeout(scheduleTimeout, pongTimeout.getAddress());
                 scheduleTimeout.setTimeoutEvent(suspectedTimeout);
                 trigger(scheduleTimeout, timer);
-
-                //nodeHandler.printAliveNodes();
             }
         }
     };
 
+    /**
+     * Handler for receiving suspected timeout.
+     * Is triggering a certain time after the ping timed out and we sent the K-pings.
+     * If ndoe is still suspected it will be declared dead.
+     */
     private Handler<SuspectedTimeout> handleSuspectedTimeout = new Handler<SuspectedTimeout>() {
 
         @Override
         public void handle(SuspectedTimeout suspectedTimeout) {
-            //log.info("{} Suspected node timeout: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
-
+            //If k-pings also timed out and the node is still suspected, declare the node dead.
             if (nodeHandler.addDead(suspectedTimeout.getAddress())) {
-                if(ENABLE_LOGGING || true)
-                log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
-
-                //nodeHandler.printAliveNodes();
+                if (ENABLE_LOGGING) {
+                    log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
+                }
             }
         }
     };
