@@ -69,7 +69,7 @@ public class NatTraversalComp extends ComponentDefinition {
     private final Random rand;
 
     private int sentPings;                              //Number of times we have hearbeated
-
+    private int killCount;
     private Set<Integer> pingedParents;                 //Set of parents we've pinged but not received a pong from
     private Set<NatedAddress> latestParentSample;       //Latest sample received from croupier
     private Set<Address> deadParents;                   //Oh no! Set of parents declared dead
@@ -216,7 +216,10 @@ public class NatTraversalComp extends ComponentDefinition {
                 for (Container<NatedAddress, Object> container : publicSample) {
                     latestParentSample.add(container.getSource()); //Add all received sources to a set
                 }
-
+                if (ENABLE_PROVIDED_LOGGING) {
+                    if (latestParentSample.size() == 0)
+                        log.info(selfAddress + "RECEIVED EMPTY SAMPLE");
+                }
                 sendNewParents(latestParentSample);                 //Update our parents if someone has died
             }
         }
@@ -229,29 +232,47 @@ public class NatTraversalComp extends ComponentDefinition {
                 samplePeers.add(node);
             }
         }
+        for (NatedAddress node : selfAddress.getParents()) { //Filter out the dead parents
+            if (!deadParents.contains(node.getBaseAdr())) {
+                samplePeers.add(node);
+            }
+        }
 
         List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers); //Create a list to retrieve peers from
         Collections.shuffle(samplePeerList);
+        Set<NatedAddress> aliveParents = new HashSet<NatedAddress>(selfAddress.getParents());
+        Set<NatedAddress> addressesToRemove = new HashSet<>();
+        for(NatedAddress node : aliveParents){
+            if(deadParents.contains(node.getBaseAdr()))
+                addressesToRemove.add(node);
+        }
+        aliveParents.removeAll(addressesToRemove);
+        if (ENABLE_PROVIDED_LOGGING) {
+            if (aliveParents.size() < PARENTS_COUNT)
+                log.info(selfAddress + "I'm low on parents. THe croupier sample is " + latestParentSample);
+        }
         boolean listUpdated = false;                                      //Boolean which gets set to true if a parent has been replaced
         for (NatedAddress address : samplePeerList) {                     //Loop the list and break if we have enough parents
-            if (selfAddress.getParents().size() >= PARENTS_COUNT) {
+            if (aliveParents.size() >= PARENTS_COUNT) {
                 break;
             }
 
-            if (!address.equals(selfAddress)) {
+            if (!address.getBaseAdr().equals(selfAddress.getBaseAdr())) {
                 listUpdated = true;
-                selfAddress.getParents().add(address);
+                aliveParents.add(address);
             }
         }
 
         if (listUpdated) {                                              //Send the parents to SwimComp if we have new parents
-            Set<NatedAddress> setToSend = new HashSet<>(selfAddress.getParents());
+            Set<NatedAddress> setToSend = new HashSet<>(aliveParents);
 
             if (ENABLE_OUR_LOGGING) {
                 log.info("Sending a new parent! The list is " + setToSend);
             }
 
             trigger(new NetNewParentAlert(selfAddress, selfAddress, setToSend), local);
+            selfAddress.getParents().clear();
+            selfAddress.getParents().addAll(setToSend);
         }
     }
 
@@ -313,9 +334,7 @@ public class NatTraversalComp extends ComponentDefinition {
 
                 deadParents.add(natPingTimeout.getAddress().getBaseAdr());
                 pingedParents.remove(natPingTimeout.getPingNr());
-                if (selfAddress.getParents().remove(natPingTimeout.getAddress())) {
-                    sendNewParents(latestParentSample);
-                }
+                sendNewParents(latestParentSample);
             }
         }
     };
