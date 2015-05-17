@@ -29,10 +29,10 @@ import se.kth.swim.msg.net.NetMsg;
 import se.kth.swim.msg.net.NetNatPing;
 import se.kth.swim.msg.net.NetNatPong;
 import se.kth.swim.msg.net.NetNewParentAlert;
-import se.kth.swim.timeouts.PingTimeout;
+import se.kth.swim.timeouts.HeartbeatTimeout;
+import se.kth.swim.timeouts.NatPingTimeout;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
-import se.sics.kompics.Init;
 import se.sics.kompics.Negative;
 import se.sics.kompics.Positive;
 import se.sics.kompics.Start;
@@ -42,12 +42,8 @@ import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.SchedulePeriodicTimeout;
 import se.sics.kompics.timer.ScheduleTimeout;
-import se.sics.kompics.timer.Timeout;
 import se.sics.kompics.timer.Timer;
-import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
-import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
-import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
 import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
 
@@ -59,6 +55,8 @@ public class NatTraversalComp extends ComponentDefinition {
     private static final int HEARTBEAT_TIMEOUT = 500;   //Timeout between heartbeats
     private static final int PING_TIMEOUT = 500;        //Timeout to receive a pong
     private static final int PARENTS_COUNT = 5;         //How many parents each NATed node should have
+    private static final boolean ENABLE_PROVIDED_LOGGING = false;
+    private static final boolean ENABLE_OUR_LOGGING = false;
 
 
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
@@ -78,7 +76,9 @@ public class NatTraversalComp extends ComponentDefinition {
 
     public NatTraversalComp(NatTraversalInit init) {
         this.selfAddress = init.selfAddress;
-//        log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
+        if (ENABLE_PROVIDED_LOGGING) {
+            log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
+        }
 
         this.rand = new Random(init.seed);
 
@@ -100,7 +100,9 @@ public class NatTraversalComp extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-//            log.info("{} starting...", new Object[]{selfAddress.getId()});
+            if (ENABLE_PROVIDED_LOGGING) {
+                log.info("{} starting...", new Object[]{selfAddress.getId()});
+            }
             scheduleHeartbeating();
         }
 
@@ -109,7 +111,9 @@ public class NatTraversalComp extends ComponentDefinition {
 
         @Override
         public void handle(Stop event) {
-//            log.info("{} stopping...", new Object[]{selfAddress.getId()});
+            if (ENABLE_PROVIDED_LOGGING) {
+                log.info("{} stopping...", new Object[]{selfAddress.getId()});
+            }
         }
 
     };
@@ -118,7 +122,9 @@ public class NatTraversalComp extends ComponentDefinition {
 
         @Override
         public void handle(NetMsg<Object> msg) {
-//            log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
+            if (ENABLE_PROVIDED_LOGGING) {
+                log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
+            }
             Header<NatedAddress> header = msg.getHeader();
             if (header instanceof SourceHeader) {
                 if (!selfAddress.isOpen()) {
@@ -126,25 +132,36 @@ public class NatTraversalComp extends ComponentDefinition {
                 }
                 SourceHeader<NatedAddress> sourceHeader = (SourceHeader<NatedAddress>) header;
                 if (sourceHeader.getActualDestination().getParents().contains(selfAddress)) {
-//                    log.info("{} relaying message for:{}", new Object[]{selfAddress.getId(), sourceHeader.getSource()});
+                    if (ENABLE_PROVIDED_LOGGING) {
+                        log.info("{} relaying message for:{}", new Object[]{selfAddress.getId(), sourceHeader.getSource()});
+                    }
                     RelayHeader<NatedAddress> relayHeader = sourceHeader.getRelayHeader();
                     trigger(msg.copyMessage(relayHeader), network);
                     return;
-                } else {
-//                    log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
+                }
+                else {
+                    if (ENABLE_PROVIDED_LOGGING) {
+                        log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
+                    }
                     return;
                 }
-            } else if (header instanceof RelayHeader) {
+            }
+            else if (header instanceof RelayHeader) {
                 if (selfAddress.isOpen()) {
                     throw new RuntimeException("relay header msg received on open node - nat traversal logic error");
                 }
                 RelayHeader<NatedAddress> relayHeader = (RelayHeader<NatedAddress>) header;
-//                log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
+                if (ENABLE_PROVIDED_LOGGING) {
+                    log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
+                }
                 Header<NatedAddress> originalHeader = relayHeader.getActualHeader();
                 trigger(msg.copyMessage(originalHeader), local);
                 return;
-            } else {
-//                log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
+            }
+            else {
+                if (ENABLE_PROVIDED_LOGGING) {
+                    log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
+                }
                 trigger(msg, local);
                 return;
             }
@@ -156,31 +173,43 @@ public class NatTraversalComp extends ComponentDefinition {
 
         @Override
         public void handle(NetMsg<Object> msg) {
-//            log.trace("{} sending msg:{}", new Object[]{selfAddress.getId(), msg});
+            if (ENABLE_PROVIDED_LOGGING) {
+                log.trace("{} sending msg:{}", new Object[]{selfAddress.getId(), msg});
+            }
             Header<NatedAddress> header = msg.getHeader();
             if (header.getDestination().isOpen()) {
-//                log.info("{} sending direct message:{} to:{}", new Object[]{selfAddress.getId(), msg, header.getDestination()});
+                if (ENABLE_PROVIDED_LOGGING) {
+                    log.info("{} sending direct message:{} to:{}", new Object[]{selfAddress.getId(), msg, header.getDestination()});
+                }
                 trigger(msg, network);
                 return;
-            } else {
+            }
+            else {
                 if (header.getDestination().getParents().isEmpty()) {
                     throw new RuntimeException("nated node with no parents in node " + selfAddress + ". The orphan is " + header.getDestination());
                 }
                 NatedAddress parent = randomNode(header.getDestination().getParents());
                 SourceHeader<NatedAddress> sourceHeader = new SourceHeader(header, parent);
-//                log.info("{} sending message:{} to relay:{}", new Object[]{selfAddress.getId(), msg, parent});
+                if (ENABLE_PROVIDED_LOGGING) {
+                    log.info("{} sending message:{} to relay:{}", new Object[]{selfAddress.getId(), msg, parent});
+                }
                 trigger(msg.copyMessage(sourceHeader), network);
                 return;
             }
         }
 
     };
+
     //Handler to receive new sample from croupier in
     private Handler handleCroupierSample = new Handler<CroupierSample>() {
         @Override
         public void handle(CroupierSample event) {
             latestParentSample.clear();
-            log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
+
+            if (ENABLE_OUR_LOGGING) {
+                log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
+            }
+
             if (!selfAddress.isOpen()) {
                 //use this to change parent in case it died
                 Set<Container<NatedAddress, Object>> publicSample = new HashSet<>(event.publicSample);
@@ -189,19 +218,18 @@ public class NatTraversalComp extends ComponentDefinition {
                 }
 
                 sendNewParents(latestParentSample);                 //Update our parents if someone has died
-
             }
-
         }
     };
 
-    private void sendNewParents(Set<NatedAddress> inputPeers){
+    private void sendNewParents(Set<NatedAddress> inputPeers) {
         Set<NatedAddress> samplePeers = new HashSet<>();
-        for(NatedAddress node : inputPeers){ //Filter out the dead parents
-            if(!deadParents.contains(node.getBaseAdr())) {
+        for (NatedAddress node : inputPeers) { //Filter out the dead parents
+            if (!deadParents.contains(node.getBaseAdr())) {
                 samplePeers.add(node);
             }
         }
+
         List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers); //Create a list to retrieve peers from
         Collections.shuffle(samplePeerList);
         boolean listUpdated = false;                                      //Boolean which gets set to true if a parent has been replaced
@@ -215,36 +243,52 @@ public class NatTraversalComp extends ComponentDefinition {
                 selfAddress.getParents().add(address);
             }
         }
+
         if (listUpdated) {                                              //Send the parents to SwimComp if we have new parents
             Set<NatedAddress> setToSend = new HashSet<>(selfAddress.getParents());
-            log.info("Sending a new parent! The list is " + setToSend);
+
+            if (ENABLE_OUR_LOGGING) {
+                log.info("Sending a new parent! The list is " + setToSend);
+            }
+
             trigger(new NetNewParentAlert(selfAddress, selfAddress, setToSend), local);
         }
     }
+
     //Handler to answer to heartbeats in.
     private Handler<NetNatPing> handlePing = new Handler<NetNatPing>() {
         @Override
         public void handle(NetNatPing netNatPing) {
-            log.info("Answering hearbeat from " + netNatPing.getSource() + ". I'm node " + selfAddress);
+            if (ENABLE_OUR_LOGGING) {
+                log.info("Answering hearbeat from " + netNatPing.getSource() + ". I'm node " + selfAddress);
+            }
 
             trigger(new NetNatPong(selfAddress, netNatPing.getSource(), netNatPing.getContent().getPingNr()), network);
         }
     };
+
     //Handler to receive Pongs in. If we receive a pong we remove the node from pingedParents
     private Handler<NetNatPong> handlePong = new Handler<NetNatPong>() {
         @Override
         public void handle(NetNatPong netNatPong) {
-            log.info("Received a NatPong from " + netNatPong.getSource() + ". I'm node " + selfAddress);
+            if (ENABLE_OUR_LOGGING) {
+                log.info("Received a NatPong from " + netNatPong.getSource() + ". I'm node " + selfAddress);
+            }
+
             pingedParents.remove(netNatPong.getContent().getPingNr());
         }
     };
+
     //Handler to send pings from. We loop through all parents and ping them.
     private Handler<HeartbeatTimeout> handleHeartbeatTimeout = new Handler<HeartbeatTimeout>() {
         @Override
         public void handle(HeartbeatTimeout heartbeatTimeout) {
 
             for (NatedAddress address : selfAddress.getParents()) {
-                log.info("Sending a hearbeat from address " + selfAddress + " to address " + address);
+                if (ENABLE_OUR_LOGGING) {
+                    log.info("Sending a hearbeat from address " + selfAddress + " to address " + address);
+                }
+
                 trigger(new NetNatPing(selfAddress, address, sentPings), network);
 
                 pingedParents.add(sentPings);
@@ -254,33 +298,36 @@ public class NatTraversalComp extends ComponentDefinition {
                 sentPings++;
                 spt.setTimeoutEvent(sc);
                 trigger(spt, timer);
-
-
             }
         }
     };
+
     //handler to handle timed out pings in. If a node still is in the pingedParents Set it's declared dead.
     private Handler<NatPingTimeout> handlePingTimeout = new Handler<NatPingTimeout>() {
         @Override
         public void handle(NatPingTimeout natPingTimeout) {
             if (pingedParents.contains(natPingTimeout.getPingNr())) {
-                log.info("Declaring node " + natPingTimeout.getAddress() + " dead. I'm node " + selfAddress);
+                if (ENABLE_OUR_LOGGING) {
+                    log.info("Declaring node " + natPingTimeout.getAddress() + " dead. I'm node " + selfAddress);
+                }
+
                 deadParents.add(natPingTimeout.getAddress().getBaseAdr());
                 pingedParents.remove(natPingTimeout.getPingNr());
-                if(selfAddress.getParents().remove(natPingTimeout.getAddress())) {
+                if (selfAddress.getParents().remove(natPingTimeout.getAddress())) {
                     sendNewParents(latestParentSample);
                 }
             }
         }
     };
-    //Handler to start scheduling pings
+
+    //Will start scheduling pings
     private void scheduleHeartbeating() {
         SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(HEARTBEAT_TIMEOUT, HEARTBEAT_TIMEOUT);
         HeartbeatTimeout sc = new HeartbeatTimeout(spt);
         spt.setTimeoutEvent(sc);
         trigger(spt, timer);
     }
-    
+
     private NatedAddress randomNode(Set<NatedAddress> nodes) {
         int index = rand.nextInt(nodes.size());
         Iterator<NatedAddress> it = nodes.iterator();
@@ -289,43 +336,6 @@ public class NatTraversalComp extends ComponentDefinition {
             index--;
         }
         return it.next();
-    }
-
-    public static class NatTraversalInit extends Init<NatTraversalComp> {
-
-        public final NatedAddress selfAddress;
-        public final long seed;
-
-        public NatTraversalInit(NatedAddress selfAddress, long seed) {
-            this.selfAddress = selfAddress;
-            this.seed = seed;
-        }
-    }
-
-    class HeartbeatTimeout extends Timeout {
-
-        protected HeartbeatTimeout(SchedulePeriodicTimeout request) {
-            super(request);
-        }
-    }
-
-    class NatPingTimeout extends Timeout {
-
-        private NatedAddress address;
-        private int pingNr;
-        protected NatPingTimeout(ScheduleTimeout request, NatedAddress address, int pingNr) {
-            super(request);
-            this.pingNr = pingNr;
-            this.address = address;
-        }
-
-        public int getPingNr() {
-            return pingNr;
-        }
-
-        public NatedAddress getAddress() {
-            return address;
-        }
     }
 
 }
