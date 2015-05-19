@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package se.kth.swim;
+package se.kth.swim.component;
 
 import java.util.*;
 
@@ -25,12 +25,13 @@ import org.slf4j.LoggerFactory;
 import se.kth.swim.croupier.CroupierPort;
 import se.kth.swim.croupier.msg.CroupierSample;
 import se.kth.swim.croupier.util.Container;
+import se.kth.swim.component.init.NatTraversalInit;
 import se.kth.swim.msg.net.NetMsg;
 import se.kth.swim.msg.net.NetNatPing;
 import se.kth.swim.msg.net.NetNatPong;
 import se.kth.swim.msg.net.NetNewParentAlert;
-import se.kth.swim.timeouts.HeartbeatTimeout;
-import se.kth.swim.timeouts.NatPingTimeout;
+import se.kth.swim.timeout.HeartbeatTimeout;
+import se.kth.swim.timeout.NatPingTimeout;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
 import se.sics.kompics.Negative;
@@ -52,12 +53,11 @@ import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
  */
 public class NatTraversalComp extends ComponentDefinition {
 
+    private static final boolean ENABLE_PROVIDED_LOGGING = false;
+    private static final boolean ENABLE_OUR_LOGGING = false;
     private static final int HEARTBEAT_TIMEOUT = 500;   //Timeout between heartbeats
     private static final int PING_TIMEOUT = 500;        //Timeout to receive a pong
     private static final int PARENTS_COUNT = 5;         //How many parents each NATed node should have
-    private static final boolean ENABLE_PROVIDED_LOGGING = false;
-    private static final boolean ENABLE_OUR_LOGGING = false;
-
 
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
     private Negative<Network> local = provides(Network.class);
@@ -69,13 +69,13 @@ public class NatTraversalComp extends ComponentDefinition {
     private final Random rand;
 
     private int sentPings;                              //Number of times we have hearbeated
-    private int killCount;
     private Set<Integer> pingedParents;                 //Set of parents we've pinged but not received a pong from
     private Set<NatedAddress> latestParentSample;       //Latest sample received from croupier
     private Set<Address> deadParents;                   //Oh no! Set of parents declared dead
 
     public NatTraversalComp(NatTraversalInit init) {
         this.selfAddress = init.selfAddress;
+
         if (ENABLE_PROVIDED_LOGGING) {
             log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
         }
@@ -216,15 +216,21 @@ public class NatTraversalComp extends ComponentDefinition {
                 for (Container<NatedAddress, Object> container : publicSample) {
                     latestParentSample.add(container.getSource()); //Add all received sources to a set
                 }
-                if (ENABLE_PROVIDED_LOGGING) {
-                    if (latestParentSample.size() == 0)
+                if (ENABLE_OUR_LOGGING) {
+                    if (latestParentSample.size() == 0) {
                         log.info(selfAddress + "RECEIVED EMPTY SAMPLE");
+                    }
                 }
                 sendNewParents(latestParentSample);                 //Update our parents if someone has died
             }
         }
     };
 
+    /**
+     * Takes a set of peers. Filters out those marked as dead and will send
+     * new parents to the SWIM layer if needed.
+     * Needed only if current parent count is less than PARENTS_COUNT constant.
+     * */
     private void sendNewParents(Set<NatedAddress> inputPeers) {
         Set<NatedAddress> samplePeers = new HashSet<>();
         for (NatedAddress node : inputPeers) { //Filter out the dead parents
@@ -242,14 +248,15 @@ public class NatTraversalComp extends ComponentDefinition {
         Collections.shuffle(samplePeerList);
         Set<NatedAddress> aliveParents = new HashSet<NatedAddress>(selfAddress.getParents());
         Set<NatedAddress> addressesToRemove = new HashSet<>();
-        for(NatedAddress node : aliveParents){
-            if(deadParents.contains(node.getBaseAdr()))
+        for (NatedAddress node : aliveParents) {
+            if (deadParents.contains(node.getBaseAdr()))
                 addressesToRemove.add(node);
         }
         aliveParents.removeAll(addressesToRemove);
         if (ENABLE_PROVIDED_LOGGING) {
-            if (aliveParents.size() < PARENTS_COUNT)
+            if (aliveParents.size() < PARENTS_COUNT) {
                 log.info(selfAddress + "I'm low on parents. THe croupier sample is " + latestParentSample);
+            }
         }
         boolean listUpdated = false;                                      //Boolean which gets set to true if a parent has been replaced
         for (NatedAddress address : samplePeerList) {                     //Loop the list and break if we have enough parents
@@ -347,6 +354,7 @@ public class NatTraversalComp extends ComponentDefinition {
         trigger(spt, timer);
     }
 
+    //Returns a random node from the set. Method provided.
     private NatedAddress randomNode(Set<NatedAddress> nodes) {
         int index = rand.nextInt(nodes.size());
         Iterator<NatedAddress> it = nodes.iterator();

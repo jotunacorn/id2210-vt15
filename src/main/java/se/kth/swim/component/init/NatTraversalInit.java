@@ -1,5 +1,6 @@
-package se.kth.swim;
+package se.kth.swim.component.init;
 
+import se.kth.swim.component.NatTraversalComp;
 import se.sics.kompics.Init;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 

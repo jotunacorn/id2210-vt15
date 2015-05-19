@@ -19,9 +19,9 @@
 package se.kth.swim.simulation;
 
 import org.javatuples.Pair;
-import se.kth.swim.AggregatorComp;
-import se.kth.swim.HostComp;
-import se.kth.swim.SwimComp;
+import se.kth.swim.component.AggregatorComp;
+import se.kth.swim.component.HostComp;
+import se.kth.swim.component.SwimComp;
 import se.kth.swim.croupier.CroupierConfig;
 import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.*;
@@ -35,7 +35,6 @@ import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation1;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.ConstantDistribution;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.Distribution;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.BasicIntSequentialDistribution;
-import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.IntegerUniformDistribution;
 import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;

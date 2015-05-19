@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package se.kth.swim;
+package se.kth.swim.component;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +45,15 @@ import java.util.*;
  */
 public class AggregatorComp extends ComponentDefinition {
 
+    private static final boolean ENABLE_LOGGING = false;
+
     private static final Logger log = LoggerFactory.getLogger(AggregatorComp.class);
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
 
     private final NatedAddress selfAddress;
 
+    //Nested hashmaps to hold status reports. Key to the outer is the status number. Key to inner is address who sent the report.
     public static Map<Integer, Map<Address, Status>> statuses;
 
     public AggregatorComp(AggregatorInit init) {
@@ -68,7 +71,9 @@ public class AggregatorComp extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-            log.info("{} starting...", new Object[]{selfAddress});
+            if (ENABLE_LOGGING) {
+                log.info("{} starting...", new Object[]{selfAddress});
+            }
         }
 
     };
@@ -76,17 +81,25 @@ public class AggregatorComp extends ComponentDefinition {
 
         @Override
         public void handle(Stop event) {
-            log.info("{} stopping...", new Object[]{selfAddress});
+            if (ENABLE_LOGGING) {
+                log.info("{} stopping...", new Object[]{selfAddress});
+            }
         }
 
     };
 
+    /**
+     * Handler for status reports. Statuses are sent periodically by the SwimComponent.
+     */
     private Handler<NetStatus> handleStatus = new Handler<NetStatus>() {
 
         @Override
         public void handle(NetStatus status) {
-            //(log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}, Alive nodes: {}", new Object[]{selfAddress.getId(),status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings, status.getContent().getAliveNodes()});
+            if (ENABLE_LOGGING) {
+                log.info("{} status nr:{} from:{} received-pings:{} sent-pings:{}, Alive nodes: {}", new Object[]{selfAddress.getId(), status.getContent().statusNr, status.getHeader().getSource(), status.getContent().receivedPings, status.getContent().sentPings, status.getContent().getAliveNodes()});
+            }
 
+            //Put the status in the appropriate HashMap for later.
             Map<Address, Status> statusesFromNode = statuses.get(status.getContent().getStatusNr());
 
             if (statusesFromNode == null) {
@@ -98,31 +111,40 @@ public class AggregatorComp extends ComponentDefinition {
         }
     };
 
+    /**
+     * Performs a convergence calculation based on the previously reported statuses.
+     * This method is called after the simulation ended.
+     */
     public static void calculateConvergence() {
+        //Used to print raw values to a file for easier export.
         PrintWriter writer = null;
         try {
             writer = new PrintWriter("convergance.txt", "UTF-8");
-        }
-        catch (FileNotFoundException | UnsupportedEncodingException e) {
+        } catch (FileNotFoundException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
         Map<Integer, Double> convergenceByStatusNr = new HashMap<>();
 
+        //Loop through all status numbers (rounds)
         for (int statusNr : statuses.keySet()) {
             Map<Address, Status> statusesForNr = statuses.get(statusNr);
 
             Set<Address> allAliveNodes = new HashSet<>();
             Set<Address> commonAliveNodes = null;
 
+            //For every status, in the round...
             for (Address address : statusesForNr.keySet()) {
                 Status status = statusesForNr.get(address);
 
+                //Add the sender node to their own alive nodes list. This is important for the convergence calculation.
                 NatedAddress natedAddress = new BasicNatedAddress((BasicAddress) address);
                 status.getAliveNodes().put(natedAddress, 0);
 
+                //Add all alive nodes to a set
                 allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
 
+                //Get the common alive nodes from all nodes.
                 if (commonAliveNodes == null) {
                     commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
                 }
@@ -131,13 +153,15 @@ public class AggregatorComp extends ComponentDefinition {
                 }
             }
 
+            //The convergence is calculated as common nodes divided by total nodes in the system.
+            //If all nodes have all other (alive) nodes in their alive lists, the convergence rate will be 1.
             double convergenceRate = (double) commonAliveNodes.size() / (double) Math.max(1, allAliveNodes.size());
 
             if (convergenceRate > 1) {
                 convergenceRate = 1 / convergenceRate;
             }
 
-            log.info("alive nodes is " + commonAliveNodes.size() + " all alive is " + allAliveNodes.size());
+            log.info("Number of alive nodes: " + commonAliveNodes.size() + ", Number of alive nodes: " + allAliveNodes.size());
             convergenceByStatusNr.put(statusNr, convergenceRate);
         }
 
@@ -148,6 +172,10 @@ public class AggregatorComp extends ComponentDefinition {
         writer.close();
     }
 
+    /**
+     * Converts a set of NatedAddresses to a set of Addresses.
+     * This is needed because the hashcode of the NatedAddress changes if the parents change.
+     */
     private static Set<Address> convertToAddress(Set<NatedAddress> nodes) {
         Set<Address> addresses = new HashSet<>();
         for (NatedAddress node : nodes) {
@@ -164,4 +192,5 @@ public class AggregatorComp extends ComponentDefinition {
             this.selfAddress = selfAddress;
         }
     }
+
 }

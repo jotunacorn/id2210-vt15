@@ -16,18 +16,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package se.kth.swim;
+package se.kth.swim.component;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.swim.component.init.SwimInit;
 import se.kth.swim.msg.Pong;
 import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.*;
 import se.kth.swim.node.NodeHandler;
-import se.kth.swim.timeouts.PingTimeout;
-import se.kth.swim.timeouts.PongTimeout;
-import se.kth.swim.timeouts.StatusTimeout;
-import se.kth.swim.timeouts.SuspectedTimeout;
+import se.kth.swim.timeout.PingTimeout;
+import se.kth.swim.timeout.PongTimeout;
+import se.kth.swim.timeout.StatusTimeout;
+import se.kth.swim.timeout.SuspectedTimeout;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.*;
@@ -42,10 +43,10 @@ import java.util.*;
 @SuppressWarnings("FieldCanBeLocal")
 public class SwimComp extends ComponentDefinition {
 
+    private static final boolean ENABLE_LOGGING = false;
     private static final int PING_TIMEOUT = 2000; //Time until a node is suspected
     private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
-    private static final boolean ENABLE_LOGGING = false;
     private static final int K = 4; //K value, how many nodes we K-ping if we suspect a node.
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);

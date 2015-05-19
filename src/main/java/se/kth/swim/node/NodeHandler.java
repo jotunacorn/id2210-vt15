@@ -1,6 +1,6 @@
 package se.kth.swim.node;
 
-import se.kth.swim.SwimComp;
+import se.kth.swim.component.SwimComp;
 import se.kth.swim.msg.Pong;
 import se.sics.kompics.network.Address;
 import se.sics.p2ptoolbox.util.network.NatedAddress;

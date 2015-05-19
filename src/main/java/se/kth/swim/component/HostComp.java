@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package se.kth.swim;
+package se.kth.swim.component;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -27,6 +27,8 @@ import se.kth.swim.croupier.CroupierComp;
 import se.kth.swim.croupier.CroupierConfig;
 import se.kth.swim.croupier.CroupierPort;
 import se.kth.swim.croupier.util.OverlayFilter;
+import se.kth.swim.component.init.NatTraversalInit;
+import se.kth.swim.component.init.SwimInit;
 import se.sics.kompics.Component;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;

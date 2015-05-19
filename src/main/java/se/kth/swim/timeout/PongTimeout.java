@@ -1,4 +1,4 @@
-package se.kth.swim.timeouts;
+package se.kth.swim.timeout;
 
 import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timeout;
