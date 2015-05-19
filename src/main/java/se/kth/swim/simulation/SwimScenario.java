@@ -49,12 +49,19 @@ import java.util.*;
  */
 public class SwimScenario {
 
-    private static final int NUMBER_OF_NODES = 50;
-    private static final int BOOTSTRAP_SIZE = 5;
-    private static final int KILL_SIZE = 20;
-    private static final boolean ALLOW_NAT = true;
-
     private static long seed;
+
+    private static int simulationLength;
+
+    private static int nodeCount;
+    private static int bootstrapSize;
+    private static boolean allowNat;
+
+    private static int killSize;
+    private static int killInterval;
+    private static int failureAfter;
+
+
     private static InetAddress localHost;
 
     private static Set<Integer> killedNodes;
@@ -128,18 +135,19 @@ public class SwimScenario {
 
                 @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
-                    if(ALLOW_NAT) {
+                    if (allowNat) {
                         if (nodeId % 3 == 0) {
 
                             //nated address
                             nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
 
-                        } else {
+                        }
+                        else {
                             //open address
                             nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
                         }
                     }
-                    else{
+                    else {
                         nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
                     }
                     /**
@@ -162,7 +170,7 @@ public class SwimScenario {
 
                 @Override
                 public int bootstrapSize() {
-                    return BOOTSTRAP_SIZE;
+                    return bootstrapSize;
                 }
 
             };
@@ -236,8 +244,16 @@ public class SwimScenario {
     //So be carefull for null pointer exception if you draw more times than elements
     //check se.sics.p2ptoolbox.simulator.dsl.distribution for more distributions
     //you can implement your own - by extending Distribution
-    public static SimulationScenario simpleBoot(final long seed) {
+    public static SimulationScenario simpleBoot(final long seed,
+                                                final int simulationLength,
+                                                final int nodeCount,
+                                                final int bootstrapSize,
+                                                final boolean allowNat) { //TODO: Clean the regular scenario
         SwimScenario.seed = seed;
+        SwimScenario.simulationLength = simulationLength;
+        SwimScenario.nodeCount = nodeCount;
+        SwimScenario.bootstrapSize = bootstrapSize;
+        SwimScenario.allowNat = allowNat;
 
         killedNodes = new HashSet<>();
 
@@ -253,14 +269,14 @@ public class SwimScenario {
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(0));
-                        raise(NUMBER_OF_NODES, startNodeOp, new BasicIntSequentialDistribution(10));
+                        raise(nodeCount, startNodeOp, new BasicIntSequentialDistribution(10));
                     }
                 };
 
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(0*1000));
-                        raise(20, killNodeOp, new RandomDistribution(getNodesToKill(KILL_SIZE)));
+                        eventInterArrivalTime(constant(0 * 1000));
+                        raise(20, killNodeOp, new RandomDistribution(getNodesToKill(20)));
                     }
                 };
 
@@ -278,7 +294,7 @@ public class SwimScenario {
                     }
                 };
 
-                StochasticProcess fetchSimulationResult = new StochasticProcess() {
+                StochasticProcess fetchSimulationResult = new StochasticProcess() { //TODO: Do we even want to use this?
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, simulationResult);
@@ -287,12 +303,11 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                killPeers.startAfterTerminationOf(150 * 1000, startPeers);
+                //killPeers.startAfterTerminationOf(150 * 1000, startPeers);
                 // deadLinks1.startAfterTerminationOf(10000,startPeers);
                 //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(250 * 1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(simulationLength * 1000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
-
             }
         };
 
@@ -302,11 +317,76 @@ public class SwimScenario {
     }
 
 
+    public static SimulationScenario withNodeDeaths(final long seed,
+                                                    final int simulationLength,
+                                                    final int nodeCount,
+                                                    final int bootstrapSize,
+                                                    final boolean allowNat,
+                                                    final int killSize,
+                                                    final int killInterval,
+                                                    final int failureAfter) {
+        SwimScenario.seed = seed;
+        SwimScenario.simulationLength = simulationLength;
+        SwimScenario.nodeCount = nodeCount;
+        SwimScenario.bootstrapSize = bootstrapSize;
+        SwimScenario.allowNat = allowNat;
+        SwimScenario.killSize = killSize;
+        SwimScenario.killInterval = killInterval;
+        SwimScenario.failureAfter = failureAfter;
+
+        killedNodes = new HashSet<>();
+
+        SimulationScenario scen = new SimulationScenario() {
+            {
+                StochasticProcess startAggregator = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, startAggregatorOp, new ConstantDistribution(Integer.class, 0));
+                    }
+                };
+
+                StochasticProcess startPeers = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(0));
+                        raise(nodeCount, startNodeOp, new BasicIntSequentialDistribution(10));
+                    }
+                };
+
+                StochasticProcess killPeers = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(killInterval * 1000));
+                        raise(killSize, killNodeOp, new RandomDistribution(getNodesToKill(killSize)));
+                    }
+                };
+
+                StochasticProcess fetchSimulationResult = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, simulationResult);
+                    }
+                };
+
+                startAggregator.start();
+                startPeers.startAfterTerminationOf(1000, startAggregator);
+                killPeers.startAfterTerminationOf(failureAfter * 1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(simulationLength * 1000, startPeers);
+                terminateAfterTerminationOf(1000, fetchSimulationResult);
+            }
+        };
+
+        scen.setSeed(seed);
+
+        return scen;
+    }
+
+    /**
+     * Returns a set of specified number of random nodes.
+     */
     private static Set<Integer> getNodesToKill(int count) {
         Set<Integer> nodesToKill = new HashSet<>();
 
-        while (nodesToKill.size() < count && (nodesToKill.size() + killedNodes.size()) < NUMBER_OF_NODES) {
-            int nodeNumber = (int) (Math.random() * NUMBER_OF_NODES + 10);
+        while (nodesToKill.size() < count && (nodesToKill.size() + killedNodes.size()) < nodeCount) {
+            int nodeNumber = (int) (Math.random() * nodeCount + 10);
 
             if (!killedNodes.contains(nodeNumber)) {
                 nodesToKill.add(nodeNumber);
@@ -316,6 +396,9 @@ public class SwimScenario {
         return nodesToKill;
     }
 
+    /**
+     * Distribution for returning random numbers out of a specified set of integers.
+     */
     static class RandomDistribution extends Distribution<Integer> {
 
         private LinkedList<Integer> nodesToKill;

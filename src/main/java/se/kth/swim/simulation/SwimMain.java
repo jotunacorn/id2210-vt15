@@ -34,8 +34,18 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
  */
 public class SwimMain {
 
+    private static final int SIMULATION_LENGTH = 200; //In cycles
+
+    private static final int NUMBER_OF_NODES = 50;
+    private static final int BOOTSTRAP_SIZE = 5;
+    private static final boolean ALLOW_NAT = true;
+
+    private static final int KILL_SIZE = 20; //In cycles
+    private static final int KILL_INTERVAL = 10;
+    private static final int FAILURE_AFTER = 100; //In cycles
+
     public static void main(String[] args) {
-        LauncherComp.scheduler = new SimulatorScheduler(); 
+        LauncherComp.scheduler = new SimulatorScheduler();
         /**
          * the 1234 is the simulation seed. The result of a scenario with the same seed should be deterministic. 
          * Should - unless you create Random() with no seed somewhere in your own classes.
@@ -43,7 +53,8 @@ public class SwimMain {
          * It can be the same seed or can be customized, eg: newSeed = a * oldSeed + b
          * When testing you code, you might want to run the scenario with different seeds.
          */
-        LauncherComp.scenario = SwimScenario.simpleBoot(1234L);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(1234L, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT);
+        LauncherComp.scenario = SwimScenario.withNodeDeaths(1234L, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
         //
         try {
             LauncherComp.simulatorClientAddress = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 30000, -1));
