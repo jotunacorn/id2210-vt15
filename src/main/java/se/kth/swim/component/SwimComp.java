@@ -20,6 +20,8 @@ package se.kth.swim.component;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.swim.msg.parentport.NewParentAlert;
+import se.kth.swim.msg.parentport.ParentPort;
 import se.kth.swim.component.init.SwimInit;
 import se.kth.swim.msg.Pong;
 import se.kth.swim.msg.Status;
@@ -52,6 +54,7 @@ public class SwimComp extends ComponentDefinition {
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
+    private Positive<ParentPort> parentPort = requires(ParentPort.class);
 
     private final NatedAddress selfAddress;
     private final NatedAddress aggregatorAddress;
@@ -102,7 +105,7 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleAlive, network);
         subscribe(handleNetKPing, network);
         subscribe(handleNetKPong, network);
-        subscribe(handleNewParent, network);
+        subscribe(handleNewParent, parentPort);
         subscribe(handlePingTimeout, timer);
         subscribe(handleStatusTimeout, timer);
         subscribe(handlePongTimeout, timer);
@@ -256,23 +259,23 @@ public class SwimComp extends ComponentDefinition {
      * The new nodes will be added to the parent list and we will inform the other nodes by
      * adding ourself as a new node.
      */
-    private Handler<NetNewParentAlert> handleNewParent = new Handler<NetNewParentAlert>() {
+    private Handler<NewParentAlert> handleNewParent = new Handler<NewParentAlert>() {
 
         @Override
-        public void handle(NetNewParentAlert event) {
+        public void handle(NewParentAlert event) {
             //If we get a new parent event, new parents from croupier, add them to self address
             //and then add the updated information to the alive list.
             selfAddress.getParents().clear();
-            selfAddress.getParents().addAll(event.getContent().getParents());
+            selfAddress.getParents().addAll(event.getParents());
 
             if (ENABLE_LOGGING) {
-                log.info("New parent arrived!" + " The parents are " + event.getContent().getParents());
+                log.info("New parent arrived!" + " The parents are " + event.getParents());
             }
 
             incarnationCounter++;
 
             //Add self to the send buffer as a new node, so it will be propagated the next time someone ping us.
-            nodeHandler.addNodeToSendBuffer(selfAddress, incarnationCounter);
+            nodeHandler.addNewNodeToSendBuffer(selfAddress, incarnationCounter);
         }
 
     };

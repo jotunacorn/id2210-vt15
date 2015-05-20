@@ -131,7 +131,7 @@ public class NodeHandler {
      * Will add a node to the send buffer as a new node.
      * Used when receiving new parents and we want to propagate them to other nodes.
      */
-    public void addNodeToSendBuffer(NatedAddress address, int incarnationCounter) {
+    public void addNewNodeToSendBuffer(NatedAddress address, int incarnationCounter) {
         sendBuffer.put(address.getBaseAdr(), new NodeInfo(address, incarnationCounter, NodeInfo.Type.NEW));
     }
 

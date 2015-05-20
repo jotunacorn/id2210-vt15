@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.swim.msg.parentport.ParentPort;
 import se.kth.swim.croupier.CroupierComp;
 import se.kth.swim.croupier.CroupierConfig;
 import se.kth.swim.croupier.CroupierPort;
@@ -74,6 +75,7 @@ public class HostComp extends ComponentDefinition {
         swim = create(SwimComp.class, new SwimInit(selfAddress, init.bootstrapNodes, init.aggregatorAddress));
         connect(swim.getNegative(Timer.class), timer);
         connect(swim.getNegative(Network.class), nat.getPositive(Network.class));
+        connect(swim.getNegative(ParentPort.class), nat.getPositive(ParentPort.class));
     }
     
     private Handler<Start> handleStart = new Handler<Start>() {

@@ -18,26 +18,21 @@
  */
 package se.kth.swim.component;
 
-import java.util.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.kth.swim.msg.parentport.NewParentAlert;
+import se.kth.swim.msg.parentport.ParentPort;
+import se.kth.swim.component.init.NatTraversalInit;
 import se.kth.swim.croupier.CroupierPort;
 import se.kth.swim.croupier.msg.CroupierSample;
 import se.kth.swim.croupier.util.Container;
-import se.kth.swim.component.init.NatTraversalInit;
 import se.kth.swim.msg.net.NetMsg;
 import se.kth.swim.msg.net.NetNatPing;
 import se.kth.swim.msg.net.NetNatPong;
-import se.kth.swim.msg.net.NetNewParentAlert;
+import se.kth.swim.simulation.SwimScenario;
 import se.kth.swim.timeout.HeartbeatTimeout;
 import se.kth.swim.timeout.NatPingTimeout;
-import se.sics.kompics.ComponentDefinition;
-import se.sics.kompics.Handler;
-import se.sics.kompics.Negative;
-import se.sics.kompics.Positive;
-import se.sics.kompics.Start;
-import se.sics.kompics.Stop;
+import se.sics.kompics.*;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
@@ -48,6 +43,8 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
 import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
 
+import java.util.*;
+
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
@@ -57,13 +54,13 @@ public class NatTraversalComp extends ComponentDefinition {
     private static final boolean ENABLE_OUR_LOGGING = false;
     private static final int HEARTBEAT_TIMEOUT = 500;   //Timeout between heartbeats
     private static final int PING_TIMEOUT = 500;        //Timeout to receive a pong
-    private static final int PARENTS_COUNT = 5;         //How many parents each NATed node should have
 
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
     private Negative<Network> local = provides(Network.class);
     private Positive<Network> network = requires(Network.class);
     private Positive<CroupierPort> croupier = requires(CroupierPort.class);
     private Positive<Timer> timer = requires(Timer.class);
+    private Negative<ParentPort> parentPort = provides(ParentPort.class);
 
     private final NatedAddress selfAddress;
     private final Random rand;
@@ -230,7 +227,7 @@ public class NatTraversalComp extends ComponentDefinition {
      * Takes a set of peers. Filters out those marked as dead and will send
      * new parents to the SWIM layer if needed.
      * Needed only if current parent count is less than PARENTS_COUNT constant.
-     * */
+     */
     private void sendNewParents(Set<NatedAddress> inputPeers) {
         Set<NatedAddress> samplePeers = new HashSet<>();
         for (NatedAddress node : inputPeers) { //Filter out the dead parents
@@ -254,13 +251,13 @@ public class NatTraversalComp extends ComponentDefinition {
         }
         aliveParents.removeAll(addressesToRemove);
         if (ENABLE_PROVIDED_LOGGING) {
-            if (aliveParents.size() < PARENTS_COUNT) {
+            if (aliveParents.size() < SwimScenario.bootstrapSize) {
                 log.info(selfAddress + "I'm low on parents. THe croupier sample is " + latestParentSample);
             }
         }
         boolean listUpdated = false;                                      //Boolean which gets set to true if a parent has been replaced
         for (NatedAddress address : samplePeerList) {                     //Loop the list and break if we have enough parents
-            if (aliveParents.size() >= PARENTS_COUNT) {
+            if (aliveParents.size() >= SwimScenario.bootstrapSize) {
                 break;
             }
 
@@ -277,9 +274,7 @@ public class NatTraversalComp extends ComponentDefinition {
                 log.info("Sending a new parent! The list is " + setToSend);
             }
 
-            trigger(new NetNewParentAlert(selfAddress, selfAddress, setToSend), local);
-            selfAddress.getParents().clear();
-            selfAddress.getParents().addAll(setToSend);
+            trigger(new NewParentAlert(setToSend), parentPort);
         }
     }
 

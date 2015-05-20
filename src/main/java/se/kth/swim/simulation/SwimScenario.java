@@ -54,7 +54,7 @@ public class SwimScenario {
     private static int simulationLength;
 
     private static int nodeCount;
-    private static int bootstrapSize;
+    public static int bootstrapSize;
     private static boolean allowNat;
 
     private static int killSize;
