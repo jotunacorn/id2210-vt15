@@ -39,6 +39,7 @@ public class SwimMain {
     private static final int NUMBER_OF_NODES = 50; //Number of nodes in the simulation.
     private static final int BOOTSTRAP_SIZE = 5; //Number of bootstrap nodes. (Parent count in NATED nodes is of this size too.)
     private static final boolean ALLOW_NAT = true; //Set to true if NATED nodes should be allowed.
+    private static final int NATED_NODE_FRACTION = 4; //Set ratio of nated nodes. Value here will set every Nth node as nated. 2 = 50%, 3=33% ...
 
     private static final int KILL_SIZE = 20; //How many nodes to kill in total.
     private static final int KILL_INTERVAL = 10; //How often nodes should be killed, in cycles.
@@ -46,6 +47,7 @@ public class SwimMain {
 
     public static void main(String[] args) {
         LauncherComp.scheduler = new SimulatorScheduler();
+
         /**
          * the 1234 is the simulation seed. The result of a scenario with the same seed should be deterministic. 
          * Should - unless you create Random() with no seed somewhere in your own classes.
@@ -53,9 +55,11 @@ public class SwimMain {
          * It can be the same seed or can be customized, eg: newSeed = a * oldSeed + b
          * When testing you code, you might want to run the scenario with different seeds.
          */
-        //LauncherComp.scenario = SwimScenario.simpleBoot(1234L, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT);
-        LauncherComp.scenario = SwimScenario.withNodeDeaths(1234L, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
-        //
+
+        LauncherComp.scenario = SwimScenario.simpleBoot(1234L, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(1234L, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
+        //TODO: Implement dead links test?
+
         try {
             LauncherComp.simulatorClientAddress = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 30000, -1));
         } catch (UnknownHostException ex) {
@@ -71,7 +75,5 @@ public class SwimMain {
         }
 
         //Assert.assertEquals(null, SwimSimulationResult.failureCause);
-
-        AggregatorComp.calculateConvergence();
     }
 }

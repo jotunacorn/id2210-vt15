@@ -58,6 +58,7 @@ public class SwimScenario {
     private static int nodeCount;
     public static int bootstrapSize;
     private static boolean allowNat;
+    private static int natedNodeFraction;
 
     private static int killSize;
     private static int killInterval;
@@ -138,11 +139,9 @@ public class SwimScenario {
                 @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
                     if (allowNat) {
-                        if (nodeId % 3 == 0) {
-
+                        if (nodeId % natedNodeFraction == 0) {
                             //nated address
                             nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
-
                         }
                         else {
                             //open address
@@ -228,6 +227,9 @@ public class SwimScenario {
     static Operation<SimulationResult> simulationResult = new Operation<SimulationResult>() {
 
         public SimulationResult generate() {
+
+            AggregatorComp.calculateConvergence();
+
             return new SimulationResult() {
 
                 @Override
@@ -250,13 +252,15 @@ public class SwimScenario {
                                                 final int simulationLength,
                                                 final int nodeCount,
                                                 final int bootstrapSize,
-                                                final boolean allowNat) { //TODO: Clean the regular scenario
+                                                final boolean allowNat,
+                                                final int natedNodeFraction) { //TODO: Clean the regular scenario
         SwimScenario.seed = seed;
         SwimScenario.rand = new Random(seed);
         SwimScenario.simulationLength = simulationLength;
         SwimScenario.nodeCount = nodeCount;
         SwimScenario.bootstrapSize = bootstrapSize;
         SwimScenario.allowNat = allowNat;
+        SwimScenario.natedNodeFraction = natedNodeFraction;
 
         killedNodes = new HashSet<>();
 
@@ -297,7 +301,7 @@ public class SwimScenario {
                     }
                 };
 
-                StochasticProcess fetchSimulationResult = new StochasticProcess() { //TODO: Do we even want to use this?
+                StochasticProcess fetchSimulationResult = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, simulationResult);
@@ -325,6 +329,7 @@ public class SwimScenario {
                                                     final int nodeCount,
                                                     final int bootstrapSize,
                                                     final boolean allowNat,
+                                                    final int natedNodeFraction,
                                                     final int killSize,
                                                     final int killInterval,
                                                     final int failureAfter) {
@@ -334,6 +339,7 @@ public class SwimScenario {
         SwimScenario.nodeCount = nodeCount;
         SwimScenario.bootstrapSize = bootstrapSize;
         SwimScenario.allowNat = allowNat;
+        SwimScenario.natedNodeFraction = natedNodeFraction;
         SwimScenario.killSize = killSize;
         SwimScenario.killInterval = killInterval;
         SwimScenario.failureAfter = failureAfter;
