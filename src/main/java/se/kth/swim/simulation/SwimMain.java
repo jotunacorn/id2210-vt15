@@ -59,8 +59,8 @@ public class SwimMain {
         long seed = (long) (10000 * Math.random());
 
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
-        LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
-        //TODO: Implement dead links test?
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
+        LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
 
         try {
             LauncherComp.simulatorClientAddress = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 30000, -1));

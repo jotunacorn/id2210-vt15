@@ -64,10 +64,7 @@ public class SwimScenario {
     private static int killInterval;
     private static int failureAfter;
 
-
     private static InetAddress localHost;
-
-    private static Set<Integer> killedNodes;
 
     private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 1000, 500);
 
@@ -77,24 +74,6 @@ public class SwimScenario {
         } catch (UnknownHostException ex) {
             throw new RuntimeException(ex);
         }
-    }
-
-    //Make sure that your dead link set reflect the nodes in your system
-    private static final Map<Integer, Set<Pair<Integer, Integer>>> deadLinksSets = new HashMap<Integer, Set<Pair<Integer, Integer>>>();
-
-    static {
-        Set<Pair<Integer, Integer>> deadLinks;
-
-        deadLinks = new HashSet<Pair<Integer, Integer>>();
-        deadLinks.add(Pair.with(10, 12));
-        deadLinks.add(Pair.with(12, 10));
-        deadLinksSets.put(1, deadLinks);
-
-        deadLinks = new HashSet<Pair<Integer, Integer>>();
-        deadLinks.add(Pair.with(10, 12));
-        deadLinks.add(Pair.with(12, 10));
-        deadLinks.add(Pair.with(13, 10));
-        deadLinksSets.put(2, deadLinks);
     }
 
     static Operation1<StartAggregatorCmd, Integer> startAggregatorOp = new Operation1<StartAggregatorCmd, Integer>() {
@@ -181,10 +160,11 @@ public class SwimScenario {
     static Operation1<KillNodeCmd, Integer> killNodeOp = new Operation1<KillNodeCmd, Integer>() {
 
         public KillNodeCmd generate(final Integer nodeId) {
+
             SwimComp.log.info("Killing node {}", nodeId);
+
             return new KillNodeCmd() {
                 public Integer getNodeId() {
-                    killedNodes.add(nodeId);
                     return nodeId;
                 }
             };
@@ -204,22 +184,17 @@ public class SwimScenario {
     //composite network model that can be built on any other network model
     //parameters: network model, set of disconnected nodes
     //a disconnected node will not be able to send or receive messages
-    static Operation1<ChangeNetworkModelCmd, Integer> disconnectedNodesNMOp = new Operation1<ChangeNetworkModelCmd, Integer>() {
-
-        @Override
-        public ChangeNetworkModelCmd generate(Integer setIndex) {
-            NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
-            NetworkModel compositeNetworkModel = new DisconnectedNodesNetworkModel(setIndex, baseNetworkModel, null);//disconnectedNodesSets.get(setIndex));
-            return new ChangeNetworkModelCmd(compositeNetworkModel);
-        }
-    };
 
     static Operation1<ChangeNetworkModelCmd, Integer> deadLinksNMOp = new Operation1<ChangeNetworkModelCmd, Integer>() {
 
         @Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
-            NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
-            NetworkModel compositeNetworkModel = new DeadLinkNetworkModel(setIndex, baseNetworkModel, deadLinksSets.get(setIndex));
+            Set<Pair<Integer, Integer>> linksToKill = getLinksToKill(killSize);
+
+            SwimComp.log.info("Killing links: {}", linksToKill);
+
+            NetworkModel baseNetworkModel = new UniformRandomModel(0, 0);
+            NetworkModel compositeNetworkModel = new DeadLinkNetworkModel(setIndex, baseNetworkModel, linksToKill);
             return new ChangeNetworkModelCmd(compositeNetworkModel);
         }
     };
@@ -262,8 +237,6 @@ public class SwimScenario {
         SwimScenario.allowNat = allowNat;
         SwimScenario.natedNodeFraction = natedNodeFraction;
 
-        killedNodes = new HashSet<>();
-
         SimulationScenario scen = new SimulationScenario() {
             {
                 StochasticProcess startAggregator = new StochasticProcess() {
@@ -280,27 +253,6 @@ public class SwimScenario {
                     }
                 };
 
-                StochasticProcess killPeers = new StochasticProcess() {
-                    {
-                        eventInterArrivalTime(constant(0 * 1000));
-                        raise(20, killNodeOp, new RandomDistribution(getNodesToKill(20)));
-                    }
-                };
-
-                StochasticProcess deadLinks1 = new StochasticProcess() {
-                    {
-                        eventInterArrivalTime(constant(1000));
-                        raise(1, deadLinksNMOp, new ConstantDistribution(Integer.class, 1));
-                    }
-                };
-
-                StochasticProcess disconnectedNodes1 = new StochasticProcess() {
-                    {
-                        eventInterArrivalTime(constant(1000));
-                        raise(1, disconnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
-                    }
-                };
-
                 StochasticProcess fetchSimulationResult = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
@@ -310,9 +262,6 @@ public class SwimScenario {
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                //killPeers.startAfterTerminationOf(150 * 1000, startPeers);
-                // deadLinks1.startAfterTerminationOf(10000,startPeers);
-                //  disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
                 fetchSimulationResult.startAfterTerminationOf(simulationLength * 1000, startPeers);
                 terminateAfterTerminationOf(1000, fetchSimulationResult);
             }
@@ -343,8 +292,6 @@ public class SwimScenario {
         SwimScenario.killSize = killSize;
         SwimScenario.killInterval = killInterval;
         SwimScenario.failureAfter = failureAfter;
-
-        killedNodes = new HashSet<>();
 
         SimulationScenario scen = new SimulationScenario() {
             {
@@ -389,21 +336,101 @@ public class SwimScenario {
         return scen;
     }
 
+
+    public static SimulationScenario withLinkDeaths(final long seed,
+                                                    final int simulationLength,
+                                                    final int nodeCount,
+                                                    final int bootstrapSize,
+                                                    final boolean allowNat,
+                                                    final int natedNodeFraction,
+                                                    final int killSize,
+                                                    final int killInterval,
+                                                    final int failureAfter) {
+        SwimScenario.seed = seed;
+        SwimScenario.rand = new Random(seed);
+        SwimScenario.simulationLength = simulationLength;
+        SwimScenario.nodeCount = nodeCount;
+        SwimScenario.bootstrapSize = bootstrapSize;
+        SwimScenario.allowNat = allowNat;
+        SwimScenario.natedNodeFraction = natedNodeFraction;
+        SwimScenario.killSize = killSize;
+        SwimScenario.killInterval = killInterval;
+        SwimScenario.failureAfter = failureAfter;
+
+        SimulationScenario scen = new SimulationScenario() {
+            {
+                StochasticProcess startAggregator = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, startAggregatorOp, new ConstantDistribution(Integer.class, 0));
+                    }
+                };
+
+                StochasticProcess startPeers = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(0));
+                        raise(nodeCount, startNodeOp, new BasicIntSequentialDistribution(10));
+                    }
+                };
+
+                StochasticProcess deadLinks = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, deadLinksNMOp, new ConstantDistribution(Integer.class, 1));
+                    }
+                };
+
+                StochasticProcess fetchSimulationResult = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, simulationResult);
+                    }
+                };
+
+                startAggregator.start();
+                startPeers.startAfterTerminationOf(1000, startAggregator);
+                deadLinks.startAfterTerminationOf(failureAfter * 1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(simulationLength * 1000, startPeers);
+                terminateAfterTerminationOf(1000, fetchSimulationResult);
+            }
+        };
+
+        scen.setSeed(seed);
+
+        return scen;
+    }
+
     /**
      * Returns a set of specified number of random nodes.
      */
     private static Set<Integer> getNodesToKill(int count) {
         Set<Integer> nodesToKill = new HashSet<>();
 
-        while (nodesToKill.size() < count && (nodesToKill.size() + killedNodes.size()) < nodeCount) {
+        while (nodesToKill.size() < count && (nodesToKill.size()) < nodeCount) {
             int nodeNumber = (int) (rand.nextDouble() * nodeCount + 10);
 
-            if (!killedNodes.contains(nodeNumber)) {
-                nodesToKill.add(nodeNumber);
-            }
+            nodesToKill.add(nodeNumber);
         }
 
         return nodesToKill;
+    }
+
+
+    private static Set<Pair<Integer, Integer>> getLinksToKill(int count) {
+        Set<Pair<Integer, Integer>> linksToKill = new HashSet<>();
+
+        while (linksToKill.size() < count && (linksToKill.size()) < nodeCount) {
+            int firstNodeNumber = (int) (rand.nextDouble() * nodeCount + 10);
+            int secondNodeNumber = (int) (rand.nextDouble() * nodeCount + 10);
+
+            if (firstNodeNumber != secondNodeNumber) {
+                Pair<Integer, Integer> link = new Pair<>(firstNodeNumber, secondNodeNumber);
+
+                linksToKill.add(link);
+            }
+        }
+
+        return linksToKill;
     }
 
     /**
