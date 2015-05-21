@@ -139,7 +139,7 @@ public class SwimScenario {
                 @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
                     if (allowNat) {
-                        if (nodeId % natedNodeFraction == 0) {
+                        if ((nodeId % natedNodeFraction) == 1) {
                             //nated address
                             nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId), NatType.NAT, bootstrapNodes);
                         }

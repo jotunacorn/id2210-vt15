@@ -58,7 +58,10 @@ public class AggregatorComp extends ComponentDefinition {
 
     public AggregatorComp(AggregatorInit init) {
         this.selfAddress = init.selfAddress;
-        log.info("{} initiating...", new Object[]{selfAddress.getId()});
+
+        if (ENABLE_LOGGING) {
+            log.info("{} initiating...", new Object[]{selfAddress.getId()});
+        }
 
         statuses = new HashMap<>();
 
