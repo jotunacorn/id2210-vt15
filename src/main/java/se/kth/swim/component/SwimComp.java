@@ -27,10 +27,7 @@ import se.kth.swim.msg.Pong;
 import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.*;
 import se.kth.swim.node.NodeHandler;
-import se.kth.swim.timeout.PingTimeout;
-import se.kth.swim.timeout.PongTimeout;
-import se.kth.swim.timeout.StatusTimeout;
-import se.kth.swim.timeout.SuspectedTimeout;
+import se.kth.swim.timeout.*;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.*;
@@ -46,8 +43,9 @@ import java.util.*;
 public class SwimComp extends ComponentDefinition {
 
     private static final boolean ENABLE_LOGGING = false;
-    private static final int PING_TIMEOUT = 2000; //Time until a node is suspected
-    private static final int SUSPECTED_TIMEOUT = 4000; //Time until it's declared dead
+    private static final int PING_TIMEOUT = 2000; //Time until a node will be K-pinged
+    private static final int SUSPECTED_TIMEOUT = 2000; //Time until it's declared suspected
+    private static final int DEAD_TIMEOUT = 2000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
     private static final int K = 4; //K value, how many nodes we K-ping if we suspect a node.
 
@@ -77,6 +75,7 @@ public class SwimComp extends ComponentDefinition {
     //Collections holding information about what pings we sent.
     private List<Integer> sentPingNrs;
     private Map<Integer, NatedAddress> sentIndirectPings;
+    private Map<Integer, Integer> kPingNrToPingNrMapping;
 
     public SwimComp(SwimInit init) {
         if (ENABLE_LOGGING) {
@@ -92,6 +91,7 @@ public class SwimComp extends ComponentDefinition {
 
         sentPingNrs = new ArrayList<>();
         sentIndirectPings = new HashMap<>();
+        kPingNrToPingNrMapping = new HashMap<>();
 
         // Add all bootstrap nodes to our alive list.
         for (NatedAddress address : init.bootstrapNodes) {
@@ -114,6 +114,7 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleStatusTimeout, timer);
         subscribe(handlePongTimeout, timer);
         subscribe(handleSuspectedTimeout, timer);
+        subscribe(handleDeadTimeout, timer);
     }
 
     /**
@@ -214,8 +215,9 @@ public class SwimComp extends ComponentDefinition {
                 }
 
                 //If this was a response to a k-ping, forward the result to the requester node.
-                trigger(new NetKPong(selfAddress, sentIndirectPings.get(event.getContent().getPingNr()), event.getSource(), event.getContent().getIncarnationCounter()), network);
+                trigger(new NetKPong(selfAddress, sentIndirectPings.get(event.getContent().getPingNr()), event.getSource(), event.getContent().getIncarnationCounter(), kPingNrToPingNrMapping.get(event.getContent().getPingNr())), network);
                 sentIndirectPings.remove(event.getContent().getPingNr());
+                kPingNrToPingNrMapping.remove(event.getContent().getPingNr());
             }
 
             if (ENABLE_LOGGING) {
@@ -273,7 +275,7 @@ public class SwimComp extends ComponentDefinition {
             selfAddress.getParents().addAll(event.getParents());
 
             if (ENABLE_LOGGING) {
-                log.info("New parent arrived!" + " The parents are " + event.getParents());
+                log.info("{} New parents arrived: {}", new Object[]{selfAddress.getId(), event.getParents()});
             }
 
             incarnationCounter++;
@@ -317,6 +319,7 @@ public class SwimComp extends ComponentDefinition {
             //When we get a K-ping request, send a ping to the node someone requests us to ping.
             trigger(new NetPing(selfAddress, netKPing.getContent().getAddressToPing(), sentPings, incarnationCounter), network);
             sentIndirectPings.put(sentPings, netKPing.getSource());
+            kPingNrToPingNrMapping.put(sentPings, netKPing.getContent().getPingNr());
             sentPings++;
         }
 
@@ -336,6 +339,8 @@ public class SwimComp extends ComponentDefinition {
 
             //When getting a k-ping response (K-pong) add the node to the alive list again.
             nodeHandler.addDefinatelyAlive(netKPong.getContent().getAddress(), netKPong.getContent().getIncarnationCounter());
+
+            sentPingNrs.remove((Integer) netKPong.getContent().getPingNr());
 
             if (ENABLE_LOGGING) {
                 nodeHandler.printAliveNodes();
@@ -431,12 +436,12 @@ public class SwimComp extends ComponentDefinition {
                         log.info("{} sending KPing for suspected node {} to: {}", new Object[]{selfAddress.getId(), pongTimeout.getAddress(), aliveNodes.get(i)});
                     }
 
-                    trigger(new NetKPing(selfAddress, aliveNodes.get(i), pongTimeout.getAddress()), network);
+                    trigger(new NetKPing(selfAddress, aliveNodes.get(i), pongTimeout.getAddress(), pongTimeout.getPingNr()), network);
                 }
 
-                //Start another timer for the K-pings to finnish before we declare the node dead.
+                //Start another timer for the K-pings to finnish before we declare the node suspected.
                 ScheduleTimeout scheduleTimeout = new ScheduleTimeout(SUSPECTED_TIMEOUT);
-                SuspectedTimeout suspectedTimeout = new SuspectedTimeout(scheduleTimeout, pongTimeout.getAddress());
+                SuspectedTimeout suspectedTimeout = new SuspectedTimeout(scheduleTimeout, pongTimeout.getAddress(), pongTimeout.getPingNr());
                 scheduleTimeout.setTimeoutEvent(suspectedTimeout);
                 trigger(scheduleTimeout, timer);
             }
@@ -446,16 +451,40 @@ public class SwimComp extends ComponentDefinition {
     /**
      * Handler for receiving suspected timeout.
      * Is triggering a certain time after the ping timed out and we sent the K-pings.
-     * If ndoe is still suspected it will be declared dead.
+     * If still no pong is received the node will be declared suspected.
      */
     private Handler<SuspectedTimeout> handleSuspectedTimeout = new Handler<SuspectedTimeout>() {
 
         @Override
         public void handle(SuspectedTimeout suspectedTimeout) {
             //If k-pings also timed out and the node is still suspected, declare the node dead.
-            if (nodeHandler.addDead(suspectedTimeout.getAddress())) {
+            if (sentPingNrs.contains(suspectedTimeout.getPingNr())) {
                 if (ENABLE_LOGGING) {
-                    log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
+                    log.info("{} Suspected node: {}", new Object[]{selfAddress.getId(), suspectedTimeout.getAddress()});
+                }
+
+                //Start another timer for the K-pings to finnish before we declare the node suspected.
+                ScheduleTimeout scheduleTimeout = new ScheduleTimeout(DEAD_TIMEOUT);
+                DeadTimeout deadTimeout = new DeadTimeout(scheduleTimeout, suspectedTimeout.getAddress(), suspectedTimeout.getPingNr());
+                scheduleTimeout.setTimeoutEvent(deadTimeout);
+                trigger(scheduleTimeout, timer);
+            }
+        }
+    };
+
+    /**
+     * Handler for receiving dead timeout.
+     * Is triggering a certain time after the K-pings have timed out.
+     * If still no pong is received and the node is still suspected, the node will be declared dead.
+     */
+    private Handler<DeadTimeout> handleDeadTimeout = new Handler<DeadTimeout>() {
+
+        @Override
+        public void handle(DeadTimeout deadTimeout) {
+            //If k-pings also timed out and the node is still suspected, declare the node dead.
+            if (sentPingNrs.contains(deadTimeout.getPingNr()) && nodeHandler.addDead(deadTimeout.getAddress())) {
+                if (ENABLE_LOGGING) {
+                    log.info("{} Declared node dead: {}", new Object[]{selfAddress.getId(), deadTimeout.getAddress()});
                 }
             }
         }

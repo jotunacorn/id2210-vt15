@@ -10,11 +10,13 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 public class SuspectedTimeout extends Timeout {
 
     private NatedAddress address;
+    private int pingNr;
 
-    public SuspectedTimeout(ScheduleTimeout request, NatedAddress address) {
+    public SuspectedTimeout(ScheduleTimeout request, NatedAddress address, int pingNr) {
         super(request);
 
         this.address = address;
+        this.pingNr = pingNr;
     }
 
     public NatedAddress getAddress() {
@@ -24,4 +26,13 @@ public class SuspectedTimeout extends Timeout {
     public void setAddress(NatedAddress address) {
         this.address = address;
     }
+
+    public int getPingNr() {
+        return pingNr;
+    }
+
+    public void setPingNr(int pingNr) {
+        this.pingNr = pingNr;
+    }
+
 }

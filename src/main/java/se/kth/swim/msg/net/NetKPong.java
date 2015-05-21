@@ -28,8 +28,8 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
  */
 public class NetKPong extends NetMsg<KPong> {
 
-    public NetKPong(NatedAddress src, NatedAddress dst, NatedAddress address, int incarnationCounter) {
-        super(src, dst, new KPong(address, incarnationCounter));
+    public NetKPong(NatedAddress src, NatedAddress dst, NatedAddress address, int incarnationCounter, int pingNr) {
+        super(src, dst, new KPong(address, incarnationCounter, pingNr));
     }
 
     private NetKPong(Header<NatedAddress> header, KPong content) {

@@ -8,9 +8,11 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 public class KPing {
 
     private NatedAddress addressToPing;
+    private int pingNr;
 
-    public KPing(NatedAddress addressToPing) {
+    public KPing(NatedAddress addressToPing, int pingNr) {
         this.addressToPing = addressToPing;
+        this.pingNr = pingNr;
     }
 
     public NatedAddress getAddressToPing() {
@@ -19,5 +21,13 @@ public class KPing {
 
     public void setAddressToPing(NatedAddress addressToPing) {
         this.addressToPing = addressToPing;
+    }
+
+    public int getPingNr() {
+        return pingNr;
+    }
+
+    public void setPingNr(int pingNr) {
+        this.pingNr = pingNr;
     }
 }
