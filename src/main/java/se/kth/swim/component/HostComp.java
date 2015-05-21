@@ -45,6 +45,9 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
  * @author Alex Ormenisan <aaor@sics.se>
  */
 public class HostComp extends ComponentDefinition {
+
+    private static final boolean ENABLE_LOGGING = false;
+
     private static final Logger log = LoggerFactory.getLogger(HostComp.class);
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
@@ -57,7 +60,10 @@ public class HostComp extends ComponentDefinition {
 
     public HostComp(HostInit init) {
         this.selfAddress = init.selfAddress;
-        log.info("{} initiating...", new Object[]{selfAddress});
+
+        if (ENABLE_LOGGING) {
+            log.info("{} initiating...", new Object[]{selfAddress});
+        }
         
         subscribe(handleStart, control);
         subscribe(handleStop, control);
@@ -82,7 +88,9 @@ public class HostComp extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-            log.info("{} starting...", new Object[]{selfAddress});
+            if (ENABLE_LOGGING) {
+                log.info("{} starting...", new Object[]{selfAddress});
+            }
         }
 
     };
@@ -90,7 +98,9 @@ public class HostComp extends ComponentDefinition {
 
         @Override
         public void handle(Stop event) {
-            log.info("{} stopping...", new Object[]{selfAddress});
+            if (ENABLE_LOGGING) {
+                log.info("{} stopping...", new Object[]{selfAddress});
+            }
         }
 
     };
