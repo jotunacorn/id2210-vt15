@@ -140,13 +140,14 @@ public class AggregatorComp extends ComponentDefinition {
             //For every status, in the round...
             for (Address address : statusesForNr.keySet()) {
                 Status status = statusesForNr.get(address);
-                if(status.getAliveNodes().isEmpty()){
-                    nrOfDisconnectedNodes++;
-                }
+
 
                 //Add the sender node to their own alive nodes list. This is important for the convergence calculation.
                 NatedAddress natedAddress = new BasicNatedAddress((BasicAddress) address);
-
+                if(status.getAliveNodes().isEmpty()){
+                    nrOfDisconnectedNodes++;
+                    commonAliveNodes.add(natedAddress);
+                }
                 status.getAliveNodes().put(natedAddress, 0);
 
                 //Add all alive nodes to a set
@@ -163,7 +164,7 @@ public class AggregatorComp extends ComponentDefinition {
 
             //The convergence is calculated as common nodes divided by total nodes in the system.
             //If all nodes have all other (alive) nodes in their alive lists, the convergence rate will be 1.
-            double convergenceRate = Math.max(((double) (commonAliveNodes.size()-nrOfDisconnectedNodes )/ (double) Math.max(1, allAliveNodes.size())),0) ;
+            double convergenceRate = Math.max(((double) (commonAliveNodes.size() - nrOfDisconnectedNodes) / (double) Math.max(1, allAliveNodes.size())), 0) ;
 
             if (convergenceRate > 1) {
                 convergenceRate = 1 / convergenceRate;

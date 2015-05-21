@@ -3,8 +3,13 @@ package se.kth.swim.node;
 import se.kth.swim.component.SwimComp;
 import se.kth.swim.msg.Pong;
 import se.sics.kompics.network.Address;
+import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
+import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 
@@ -331,7 +336,14 @@ public class NodeHandler {
         for (Address node : nodes.keySet()) {
             NatedAddress address = addressMapping.get(node);
             if (address != null) {
-                natedAddresses.put(address, nodes.get(node));
+                try {
+                    NatedAddress addressToSend = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 12345, address.getId()), address.getNatType(), new HashSet<NatedAddress>(address.getParents()));
+                    natedAddresses.put(addressToSend, nodes.get(node));
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
+
+
             }
         }
         return natedAddresses;
