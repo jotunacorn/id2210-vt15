@@ -34,15 +34,15 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
  */
 public class SwimMain {
 
-    private static final int SIMULATION_LENGTH = 200; //In cycles
+    private static final int SIMULATION_LENGTH = 200; //Length of simulation, in cycles.
 
-    private static final int NUMBER_OF_NODES = 50;
-    private static final int BOOTSTRAP_SIZE = 5;
-    private static final boolean ALLOW_NAT = true;
+    private static final int NUMBER_OF_NODES = 50; //Number of nodes in the simulation.
+    private static final int BOOTSTRAP_SIZE = 5; //Number of bootstrap nodes. (Parent count in NATED nodes is of this size too.)
+    private static final boolean ALLOW_NAT = true; //Set to true if NATED nodes should be allowed.
 
-    private static final int KILL_SIZE = 20; //In cycles
-    private static final int KILL_INTERVAL = 10;
-    private static final int FAILURE_AFTER = 100; //In cycles
+    private static final int KILL_SIZE = 20; //How many nodes to kill in total.
+    private static final int KILL_INTERVAL = 10; //How often nodes should be killed, in cycles.
+    private static final int FAILURE_AFTER = 100; //When in the simulation nodes should start failing, in cycles.
 
     public static void main(String[] args) {
         LauncherComp.scheduler = new SimulatorScheduler();
