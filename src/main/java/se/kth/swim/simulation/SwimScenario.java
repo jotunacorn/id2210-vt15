@@ -51,6 +51,8 @@ public class SwimScenario {
 
     private static long seed;
 
+    private static Random rand;
+
     private static int simulationLength;
 
     private static int nodeCount;
@@ -250,6 +252,7 @@ public class SwimScenario {
                                                 final int bootstrapSize,
                                                 final boolean allowNat) { //TODO: Clean the regular scenario
         SwimScenario.seed = seed;
+        SwimScenario.rand = new Random(seed);
         SwimScenario.simulationLength = simulationLength;
         SwimScenario.nodeCount = nodeCount;
         SwimScenario.bootstrapSize = bootstrapSize;
@@ -326,6 +329,7 @@ public class SwimScenario {
                                                     final int killInterval,
                                                     final int failureAfter) {
         SwimScenario.seed = seed;
+        SwimScenario.rand = new Random(seed);
         SwimScenario.simulationLength = simulationLength;
         SwimScenario.nodeCount = nodeCount;
         SwimScenario.bootstrapSize = bootstrapSize;
@@ -386,7 +390,7 @@ public class SwimScenario {
         Set<Integer> nodesToKill = new HashSet<>();
 
         while (nodesToKill.size() < count && (nodesToKill.size() + killedNodes.size()) < nodeCount) {
-            int nodeNumber = (int) (Math.random() * nodeCount + 10);
+            int nodeNumber = (int) (rand.nextDouble() * nodeCount + 10);
 
             if (!killedNodes.contains(nodeNumber)) {
                 nodesToKill.add(nodeNumber);

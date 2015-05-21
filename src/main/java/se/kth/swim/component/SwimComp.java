@@ -62,6 +62,8 @@ public class SwimComp extends ComponentDefinition {
     private UUID pingTimeoutId;
     private UUID statusTimeoutId;
 
+    private Random rand;
+
     //Various counters
     private int sentPings = 0;
     private int receivedPings = 0;
@@ -84,7 +86,9 @@ public class SwimComp extends ComponentDefinition {
         selfAddress = init.selfAddress;
         aggregatorAddress = init.aggregatorAddress;
 
-        nodeHandler = new NodeHandler(selfAddress);
+        this.rand = new Random(init.seed);
+
+        nodeHandler = new NodeHandler(selfAddress, init.seed);
 
         sentPingNrs = new ArrayList<>();
         sentIndirectPings = new HashMap<>();

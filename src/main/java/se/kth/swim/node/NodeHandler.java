@@ -14,6 +14,8 @@ public class NodeHandler {
 
     private NatedAddress selfAddress;
 
+    private Random rand;
+
     //Maps containing our nodes. Key is address, value is incarnation counter.
     private Map<Address, Integer> aliveNodes, suspectedNodes, deadNodes;
 
@@ -30,8 +32,11 @@ public class NodeHandler {
     //Current index in list of nodes to ping in round robin.
     private int pingIndex;
 
-    public NodeHandler(NatedAddress selfAddress) {
+    public NodeHandler(NatedAddress selfAddress, long seed) {
         this.selfAddress = selfAddress;
+
+        this.rand = new Random(seed);
+
         aliveNodes = new HashMap<>();
         addressMapping = new HashMap<>();
         suspectedNodes = new HashMap<>();
@@ -140,7 +145,7 @@ public class NodeHandler {
      * Will add a node to a random position in the round robin ping list.
      */
     private void addToPingList(NatedAddress address) {
-        int insertIndex = (int) (pingList.size() * Math.random());
+        int insertIndex = (int) (pingList.size() * rand.nextDouble());
         pingList.add(insertIndex, address);
     }
 
@@ -240,7 +245,7 @@ public class NodeHandler {
         if (pingList.isEmpty() || pingIndex >= pingList.size()) {
             pingList.clear();
             pingList.addAll(aliveNodes.keySet());
-            Collections.shuffle(pingList);
+            Collections.shuffle(pingList, rand);
             pingIndex = 0;
         }
         if (pingList.isEmpty()) {

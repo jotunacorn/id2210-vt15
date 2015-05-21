@@ -72,7 +72,7 @@ public class HostComp extends ComponentDefinition {
         connect(nat.getNegative(Network.class), network);
         connect(nat.getNegative(CroupierPort.class), croupier.getPositive(CroupierPort.class));
         
-        swim = create(SwimComp.class, new SwimInit(selfAddress, init.bootstrapNodes, init.aggregatorAddress));
+        swim = create(SwimComp.class, new SwimInit(selfAddress, init.bootstrapNodes, init.aggregatorAddress, init.seed));
         connect(swim.getNegative(Timer.class), timer);
         connect(swim.getNegative(Network.class), nat.getPositive(Network.class));
         connect(swim.getNegative(ParentPort.class), nat.getPositive(ParentPort.class));

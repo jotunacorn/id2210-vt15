@@ -14,10 +14,12 @@ public class SwimInit extends Init<SwimComp> {
     public final NatedAddress selfAddress;
     public final Set<NatedAddress> bootstrapNodes;
     public final NatedAddress aggregatorAddress;
+    public final long seed;
 
-    public SwimInit(NatedAddress selfAddress, Set<NatedAddress> bootstrapNodes, NatedAddress aggregatorAddress) {
+    public SwimInit(NatedAddress selfAddress, Set<NatedAddress> bootstrapNodes, NatedAddress aggregatorAddress, long seed) {
         this.selfAddress = selfAddress;
         this.bootstrapNodes = bootstrapNodes;
         this.aggregatorAddress = aggregatorAddress;
+        this.seed = seed;
     }
 }
