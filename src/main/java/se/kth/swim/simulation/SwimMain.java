@@ -18,21 +18,21 @@
  */
 package se.kth.swim.simulation;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import se.kth.swim.component.AggregatorComp;
 import se.sics.kompics.Kompics;
 import se.sics.kompics.simulation.SimulatorScheduler;
 import se.sics.p2ptoolbox.simulator.run.LauncherComp;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 /**
- *
  * @author Alex Ormenisan <aaor@sics.se>
  */
 public class SwimMain {
+
+    private static final boolean USE_RANDOM_SEED = false; //Set to true if a random seed should be used, false if 1234 should be used.
 
     private static final int SIMULATION_LENGTH = 200; //Length of simulation, in cycles.
 
@@ -56,7 +56,11 @@ public class SwimMain {
          * When testing you code, you might want to run the scenario with different seeds.
          */
 
-        long seed = (long) (10000 * Math.random());
+        long seed = 1234L;
+
+        if (USE_RANDOM_SEED) {
+            seed = (long) (10000 * Math.random());
+        }
 
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
         //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
