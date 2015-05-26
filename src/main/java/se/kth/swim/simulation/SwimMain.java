@@ -18,6 +18,7 @@
  */
 package se.kth.swim.simulation;
 
+import se.kth.swim.component.AggregatorComp;
 import se.sics.kompics.Kompics;
 import se.sics.kompics.simulation.SimulatorScheduler;
 import se.sics.p2ptoolbox.simulator.run.LauncherComp;
@@ -63,8 +64,16 @@ public class SwimMain {
         }
 
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 200, 10, 2, false, 1);
+        LauncherComp.scenario = SwimScenario.simpleBoot(seed, 50, 20, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 200, 50, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 200, 100, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 250, 200, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
         //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
-        LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
+        //LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
 
         try {
             LauncherComp.simulatorClientAddress = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 30000, -1));
@@ -81,5 +90,6 @@ public class SwimMain {
         }
 
         //Assert.assertEquals(null, SwimSimulationResult.failureCause);
+        //AggregatorComp.calculateConvergence();
     }
 }

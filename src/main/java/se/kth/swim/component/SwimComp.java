@@ -382,6 +382,9 @@ public class SwimComp extends ComponentDefinition {
 
                 sentPings++;
             }
+            else{
+                System.out.println("PARTNER ADDRESS WAS NULL");
+            }
         }
 
     };
@@ -430,7 +433,7 @@ public class SwimComp extends ComponentDefinition {
                 //Get a random selection of our alive nodes to K-ping.
                 List<NatedAddress> aliveNodes = new ArrayList<>(nodeHandler.getAliveNodes().keySet());
                 aliveNodes.remove(pongTimeout.getAddress());
-                Collections.shuffle(aliveNodes);
+                Collections.shuffle(aliveNodes, rand);
 
                 //Send K indirect pings.
                 for (int i = 0; i < K && i < aliveNodes.size(); i++) {

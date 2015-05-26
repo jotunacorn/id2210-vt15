@@ -148,7 +148,7 @@ public class NodeHandler {
      */
     private void addToPingList(NatedAddress address) {
         int insertIndex = (int) (pingList.size() * rand.nextDouble());
-        pingList.add(insertIndex, address);
+        pingList.add(insertIndex, address.getBaseAdr());
     }
 
     /**
