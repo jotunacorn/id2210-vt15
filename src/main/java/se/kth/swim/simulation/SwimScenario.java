@@ -27,7 +27,6 @@ import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.*;
 import se.sics.p2ptoolbox.simulator.core.network.NetworkModel;
 import se.sics.p2ptoolbox.simulator.core.network.impl.DeadLinkNetworkModel;
-import se.sics.p2ptoolbox.simulator.core.network.impl.DisconnectedNodesNetworkModel;
 import se.sics.p2ptoolbox.simulator.core.network.impl.UniformRandomModel;
 import se.sics.p2ptoolbox.simulator.dsl.SimulationScenario;
 import se.sics.p2ptoolbox.simulator.dsl.adaptor.Operation;
@@ -42,7 +41,10 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>

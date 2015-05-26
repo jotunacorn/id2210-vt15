@@ -3,7 +3,6 @@ package se.kth.swim.node;
 import se.kth.swim.component.SwimComp;
 import se.kth.swim.msg.Pong;
 import se.sics.kompics.network.Address;
-import se.sics.p2ptoolbox.util.network.NatType;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
@@ -14,8 +13,6 @@ import java.util.*;
 
 
 public class NodeHandler {
-    private static final int MESSAGE_SIZE = 10000; //How many nodes piggybacked in each pong.
-    private static final int LAMBDA = 3; //How many times the node change is piggybacked. Lambda * log(n)
 
     private NatedAddress selfAddress;
 
@@ -292,7 +289,7 @@ public class NodeHandler {
 
         //Get nodes from the send buffer, add them to the appropriate list and update sendcounters.
         for (NodeInfo nodeInfo : bufferAsList) {
-            if (messageSizeCounter > MESSAGE_SIZE) {
+            if (messageSizeCounter > SwimComp.PIGGYBACK_MESSAGE_SIZE) {
                 break;
             }
 
@@ -312,7 +309,7 @@ public class NodeHandler {
             }
 
             //If node was propagated enough times, remove it from the send buffer.
-            if (nodeInfo.getSendCounter() > LAMBDA * Math.max(1, Math.log(Math.max(1, aliveNodes.size())))) {
+            if (nodeInfo.getSendCounter() > SwimComp.LAMBDA * Math.max(1, Math.log(Math.max(1, aliveNodes.size())))) {
                 sendBuffer.remove(nodeInfo.getAddress());
             }
 
