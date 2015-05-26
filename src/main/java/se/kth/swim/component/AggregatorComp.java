@@ -166,7 +166,7 @@ public class AggregatorComp extends ComponentDefinition {
             //If all nodes have all other (alive) nodes in their alive lists, the convergence rate will be 1.
             double convergenceRate = Math.max(((double) (commonAliveNodes.size() - nrOfDisconnectedNodes) / (double) Math.max(1, allAliveNodes.size())), 0) ;
 
-            if (convergenceRate > 1) {
+            if (convergenceRate > 1) { //Invert it if it's higher than 1. A value higher than 1 means that the number of nodes stored in the alive lists is higher than the actual number of alive nodes.
                 convergenceRate = 1 / convergenceRate;
             }
 
