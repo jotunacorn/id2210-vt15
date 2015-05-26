@@ -242,7 +242,7 @@ public class NatTraversalComp extends ComponentDefinition {
         }
 
         List<NatedAddress> samplePeerList = new ArrayList<>(samplePeers); //Create a list to retrieve peers from
-        Collections.shuffle(samplePeerList);
+        Collections.shuffle(samplePeerList, rand);
         Set<NatedAddress> aliveParents = new HashSet<NatedAddress>(selfAddress.getParents());
         Set<NatedAddress> addressesToRemove = new HashSet<>();
         for (NatedAddress node : aliveParents) {

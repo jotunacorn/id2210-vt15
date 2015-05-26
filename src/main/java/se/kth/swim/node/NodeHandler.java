@@ -217,6 +217,7 @@ public class NodeHandler {
 
         aliveNodes.remove(address.getBaseAdr());
         suspectedNodes.remove(address.getBaseAdr());
+        pingList.remove(address.getBaseAdr());
         deadNodes.put(address.getBaseAdr(), incarnationCounter);
         addressMapping.put(address.getBaseAdr(), address);
 
@@ -244,18 +245,28 @@ public class NodeHandler {
      * Will return nodes in a round robin fashion, as described in the report.
      */
     public NatedAddress getRandomAliveNode() {
-        if (pingList.isEmpty() || pingIndex >= pingList.size()) {
-            pingList.clear();
-            pingList.addAll(aliveNodes.keySet());
-            Collections.shuffle(pingList, rand);
-            pingIndex = 0;
+        NatedAddress natedAddress = null;
+        boolean twice = false;
+        while(natedAddress == null) {
+            if (pingList.isEmpty() || pingIndex >= pingList.size()) {
+                pingList.clear();
+                pingList.addAll(aliveNodes.keySet());
+                Collections.shuffle(pingList, rand);
+                pingIndex = 0;
+                if(!twice){
+                    twice = true;
+                }
+                else{
+                    break;
+                }
+            }
+            if (pingList.isEmpty()) {
+                return null;
+            }
+            Address address = pingList.get(pingIndex);
+            natedAddress = addressMapping.get(address);
+            pingIndex++;
         }
-        if (pingList.isEmpty()) {
-            return null;
-        }
-        Address address = pingList.get(pingIndex);
-        NatedAddress natedAddress = addressMapping.get(address);
-        pingIndex++;
         return natedAddress;
     }
 

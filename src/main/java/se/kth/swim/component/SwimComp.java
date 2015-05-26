@@ -48,7 +48,7 @@ public class SwimComp extends ComponentDefinition {
     private static final int DEAD_TIMEOUT = 2000; //Time until it's declared dead
     private static final int AGGREGATOR_TIMEOUT = 1000; //Delay between sending info to aggregator
     private static final int K = 4; //K value, how many nodes we K-ping if we suspect a node.
-    public static final int PIGGYBACK_MESSAGE_SIZE = 10000; //How many nodes piggybacked in each pong.
+    public static final int PIGGYBACK_MESSAGE_SIZE = 9999999; //How many nodes piggybacked in each pong.
     public static final int LAMBDA = 3; //How many times the node change is piggybacked. Lambda * log(n)
 
     public static final Logger log = LoggerFactory.getLogger(SwimComp.class);
@@ -381,9 +381,6 @@ public class SwimComp extends ComponentDefinition {
                 sentPingNrs.add(sentPings);
 
                 sentPings++;
-            }
-            else{
-                System.out.println("PARTNER ADDRESS WAS NULL");
             }
         }
 

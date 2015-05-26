@@ -38,7 +38,7 @@ public class SwimMain {
     private static final int SIMULATION_LENGTH = 200; //Length of simulation, in cycles.
 
     private static final int NUMBER_OF_NODES = 50; //Number of nodes in the simulation.
-    private static final int BOOTSTRAP_SIZE = 5; //Number of bootstrap nodes. (Parent count in NATED nodes is of this size too.)
+    private static final int BOOTSTRAP_SIZE = 2; //Number of bootstrap nodes. (Parent count in NATED nodes is of this size too.)
     private static final boolean ALLOW_NAT = true; //Set to true if NATED nodes should be allowed.
     private static final int NATED_NODE_FRACTION = 4; //Set ratio of nated nodes. Value here will set every Nth node as nated. 2 = 50%, 3=33% ...
 
@@ -56,7 +56,7 @@ public class SwimMain {
          * It can be the same seed or can be customized, eg: newSeed = a * oldSeed + b
          * When testing you code, you might want to run the scenario with different seeds.
          */
-
+        //The seed limits the randomness but the tests are still to some extent random in their result.
         long seed = 1234L;
 
         if (USE_RANDOM_SEED) {
@@ -64,17 +64,41 @@ public class SwimMain {
         }
 
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 200, 10, 2, false, 1);
-        LauncherComp.scenario = SwimScenario.simpleBoot(seed, 50, 20, 2, false, 1);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 200, 50, 2, false, 1);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 200, 100, 2, false, 1);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 250, 200, 2, false, 1);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
         //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
         //LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
+        /**
+         * Tests without NAT
+         */
 
+        //Tests with for startup with different number of nodes. Message size is set in SwimComp.java
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 10, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 20, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 50, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 100, 2, false, 1);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 200, 2, false, 1);
+
+        //Test for killing 20 nodes out of 50 (40%, message size is set in SwimComp.java)
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, false, 1, 20, 0, 150);
+
+        //Test for Churn killing 1 node every 10 iterations
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, false, 1, 20,10, 150);
+
+
+        /**
+         * Test with NAT
+         */
+        //Tests with for startup with different number of nodes. Message size is set in SwimComp.java
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 10, 2, true, 2);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 20, 2, true, 2);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 150, 50, 2, true, 2);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 100, 2, true, 2);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 200, 2, true, 2);
+
+        //Test for killing 20 nodes out of 50 (40%, message size is set in SwimComp.java)
+        LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 2, true, 2, 5, 0, 150);
+
+        //Test for Churn killing 1 node every 10 iterations
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, false, 1, 20,10, 150);
         try {
             LauncherComp.simulatorClientAddress = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 30000, -1));
         } catch (UnknownHostException ex) {

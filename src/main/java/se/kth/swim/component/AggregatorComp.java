@@ -144,22 +144,25 @@ public class AggregatorComp extends ComponentDefinition {
 
                 //Add the sender node to their own alive nodes list. This is important for the convergence calculation.
                 NatedAddress natedAddress = new BasicNatedAddress((BasicAddress) address);
-                if(status.getAliveNodes().isEmpty()){
-                    nrOfDisconnectedNodes++;
-                    commonAliveNodes.add(natedAddress);
-                }
+
                 status.getAliveNodes().put(natedAddress, 0);
 
                 //Add all alive nodes to a set
                 allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
 
-                //Get the common alive nodes from all nodes.
-                if (commonAliveNodes == null) {
-                    commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
+                if(status.getAliveNodes().isEmpty()){
+                    nrOfDisconnectedNodes++;
+                    System.out.println("Node nr " + ((BasicAddress) address).getId() + " doesn't have any alive nodes!");
                 }
                 else {
-                    commonAliveNodes.retainAll(convertToAddress(status.getAliveNodes().keySet()));
+                    //Get the common alive nodes from all nodes.
+                    if (commonAliveNodes == null) {
+                        commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
+                    } else {
+                        commonAliveNodes.retainAll(convertToAddress(status.getAliveNodes().keySet()));
+                    }
                 }
+
             }
 
             //The convergence is calculated as common nodes divided by total nodes in the system.
@@ -176,7 +179,7 @@ public class AggregatorComp extends ComponentDefinition {
 
         for (int statusNr : convergenceByStatusNr.keySet()) {
             SwimComp.log.info("Convergence at iteration {}: {}", statusNr, convergenceByStatusNr.get(statusNr));
-            writer.println(convergenceByStatusNr.get(statusNr));
+            writer.println(convergenceByStatusNr.get(statusNr).toString().replace(".", ","));
         }
         writer.close();
     }

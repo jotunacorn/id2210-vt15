@@ -337,7 +337,69 @@ public class SwimScenario {
 
         return scen;
     }
+    public static SimulationScenario withPeriodicNodeDeaths(final long seed,
+                                                    final int simulationLength,
+                                                    final int nodeCount,
+                                                    final int bootstrapSize,
+                                                    final boolean allowNat,
+                                                    final int natedNodeFraction,
+                                                    final int killSizeInterval,
+                                                            final int totalKillSize,
+                                                    final int killInterval,
+                                                    final int failureAfter) {
+        SwimScenario.seed = seed;
+        SwimScenario.rand = new Random(seed);
+        SwimScenario.simulationLength = simulationLength;
+        SwimScenario.nodeCount = nodeCount;
+        SwimScenario.bootstrapSize = bootstrapSize;
+        SwimScenario.allowNat = allowNat;
+        SwimScenario.natedNodeFraction = natedNodeFraction;
+        SwimScenario.killSize = totalKillSize;
+        SwimScenario.killInterval = killInterval;
+        SwimScenario.failureAfter = failureAfter;
 
+        SimulationScenario scen = new SimulationScenario() {
+            {
+                StochasticProcess startAggregator = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, startAggregatorOp, new ConstantDistribution(Integer.class, 0));
+                    }
+                };
+
+                StochasticProcess startPeers = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(0));
+                        raise(nodeCount, startNodeOp, new BasicIntSequentialDistribution(10));
+                    }
+                };
+
+                StochasticProcess killPeers = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(killInterval * 1000));
+                        raise(killSizeInterval, killNodeOp, new RandomDistribution(getNodesToKill(killSize)));
+                    }
+                };
+
+                StochasticProcess fetchSimulationResult = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, simulationResult);
+                    }
+                };
+
+                startAggregator.start();
+                startPeers.startAfterTerminationOf(1000, startAggregator);
+                killPeers.startAfterTerminationOf(failureAfter * 1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(simulationLength * 1000, startPeers);
+                terminateAfterTerminationOf(1000, fetchSimulationResult);
+            }
+        };
+
+        scen.setSeed(seed);
+
+        return scen;
+    }
 
     public static SimulationScenario withLinkDeaths(final long seed,
                                                     final int simulationLength,
