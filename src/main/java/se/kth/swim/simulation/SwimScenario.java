@@ -482,7 +482,7 @@ public class SwimScenario {
     private static Set<Pair<Integer, Integer>> getLinksToKill(int count) {
         Set<Pair<Integer, Integer>> linksToKill = new HashSet<>();
 
-        while (linksToKill.size() < count && (linksToKill.size()) < nodeCount) {
+        while (linksToKill.size() < count) {
             int firstNodeNumber = (int) (rand.nextDouble() * nodeCount + 10);
             int secondNodeNumber = (int) (rand.nextDouble() * nodeCount + 10);
 
