@@ -230,7 +230,7 @@ public class SwimScenario {
                                                 final int nodeCount,
                                                 final int bootstrapSize,
                                                 final boolean allowNat,
-                                                final int natedNodeFraction) { //TODO: Clean the regular scenario
+                                                final int natedNodeFraction) {
         SwimScenario.seed = seed;
         SwimScenario.rand = new Random(seed);
         SwimScenario.simulationLength = simulationLength;
@@ -409,7 +409,6 @@ public class SwimScenario {
                                                     final boolean allowNat,
                                                     final int natedNodeFraction,
                                                     final int killSize,
-                                                    final int killInterval,
                                                     final int failureAfter) {
         SwimScenario.seed = seed;
         SwimScenario.rand = new Random(seed);
@@ -419,7 +418,6 @@ public class SwimScenario {
         SwimScenario.allowNat = allowNat;
         SwimScenario.natedNodeFraction = natedNodeFraction;
         SwimScenario.killSize = killSize;
-        SwimScenario.killInterval = killInterval;
         SwimScenario.failureAfter = failureAfter;
 
         SimulationScenario scen = new SimulationScenario() {
