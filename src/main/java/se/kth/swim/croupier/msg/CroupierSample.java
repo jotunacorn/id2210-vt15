@@ -18,9 +18,10 @@
  */
 package se.kth.swim.croupier.msg;
 
-import java.util.Set;
 import se.kth.swim.croupier.util.Container;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+
+import java.util.Set;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -30,7 +31,7 @@ public class CroupierSample<C extends Object> implements CroupierMsg.OneWay {
     public final int overlayId;
     public final Set<Container<NatedAddress, C>> publicSample;
     public final Set<Container<NatedAddress, C>> privateSample;
-    
+
     public CroupierSample(int overlayId, Set<Container<NatedAddress, C>> publicSample, Set<Container<NatedAddress, C>> privateSample) {
         this.overlayId = overlayId;
         this.publicSample = publicSample;

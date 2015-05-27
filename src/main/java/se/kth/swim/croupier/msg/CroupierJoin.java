@@ -18,8 +18,9 @@
  */
 package se.kth.swim.croupier.msg;
 
-import java.util.Set;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+
+import java.util.Set;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>

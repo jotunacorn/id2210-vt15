@@ -27,7 +27,7 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
  */
 public class NetPong extends NetMsg<Pong> {
 
-    public NetPong(NatedAddress src, NatedAddress dst,  Pong pong) {
+    public NetPong(NatedAddress src, NatedAddress dst, Pong pong) {
         super(src, dst, pong);
     }
 

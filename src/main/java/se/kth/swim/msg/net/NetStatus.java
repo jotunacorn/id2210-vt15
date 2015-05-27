@@ -24,7 +24,6 @@ import se.sics.kompics.network.Header;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 
 /**
- *
  * @author Alex Ormenisan <aaor@sics.se>
  */
 public class NetStatus extends NetMsg<Status> {

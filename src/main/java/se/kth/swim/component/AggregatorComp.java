@@ -22,12 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.NetStatus;
-import se.sics.kompics.ComponentDefinition;
-import se.sics.kompics.Handler;
-import se.sics.kompics.Init;
-import se.sics.kompics.Positive;
-import se.sics.kompics.Start;
-import se.sics.kompics.Stop;
+import se.sics.kompics.*;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
@@ -38,7 +33,10 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -150,7 +148,7 @@ public class AggregatorComp extends ComponentDefinition {
                 //Add all alive nodes to a set
                 allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
 
-                if(status.getAliveNodes().isEmpty()){
+                if (status.getAliveNodes().isEmpty()) {
                     nrOfDisconnectedNodes++;
                     System.out.println("Node nr " + ((BasicAddress) address).getId() + " doesn't have any alive nodes!");
                 }
@@ -158,7 +156,8 @@ public class AggregatorComp extends ComponentDefinition {
                     //Get the common alive nodes from all nodes.
                     if (commonAliveNodes == null) {
                         commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
-                    } else {
+                    }
+                    else {
                         commonAliveNodes.retainAll(convertToAddress(status.getAliveNodes().keySet()));
                     }
                 }
@@ -167,7 +166,7 @@ public class AggregatorComp extends ComponentDefinition {
 
             //The convergence is calculated as common nodes divided by total nodes in the system.
             //If all nodes have all other (alive) nodes in their alive lists, the convergence rate will be 1.
-            double convergenceRate = Math.max(((double) (commonAliveNodes.size() - nrOfDisconnectedNodes) / (double) Math.max(1, allAliveNodes.size())), 0) ;
+            double convergenceRate = Math.max(((double) (commonAliveNodes.size() - nrOfDisconnectedNodes) / (double) Math.max(1, allAliveNodes.size())), 0);
 
             if (convergenceRate > 1) { //Invert it if it's higher than 1. A value higher than 1 means that the number of nodes stored in the alive lists is higher than the actual number of alive nodes.
                 convergenceRate = 1 / convergenceRate;

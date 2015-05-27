@@ -19,7 +19,6 @@
 package se.kth.swim.msg.net;
 
 import se.kth.swim.msg.KPong;
-import se.kth.swim.msg.Pong;
 import se.sics.kompics.network.Header;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 

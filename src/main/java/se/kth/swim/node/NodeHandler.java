@@ -247,16 +247,16 @@ public class NodeHandler {
     public NatedAddress getRandomAliveNode() {
         NatedAddress natedAddress = null;
         boolean twice = false;
-        while(natedAddress == null) {
+        while (natedAddress == null) {
             if (pingList.isEmpty() || pingIndex >= pingList.size()) {
                 pingList.clear();
                 pingList.addAll(aliveNodes.keySet());
                 Collections.shuffle(pingList, rand);
                 pingIndex = 0;
-                if(!twice){
+                if (!twice) {
                     twice = true;
                 }
-                else{
+                else {
                     break;
                 }
             }

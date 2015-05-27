@@ -32,9 +32,10 @@ public abstract class NetMsg<C extends Object> extends BasicContentMsg<NatedAddr
     public NetMsg(NatedAddress src, NatedAddress dst, C content) {
         this(new BasicHeader(src, dst, Transport.UDP), content);
     }
-    
+
     public NetMsg(Header<NatedAddress> header, C content) {
         super(header, content);
     }
+
     public abstract NetMsg copyMessage(Header<NatedAddress> newHeader);
 }

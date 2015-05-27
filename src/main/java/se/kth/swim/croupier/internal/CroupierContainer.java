@@ -67,7 +67,7 @@ public class CroupierContainer<C extends Object> implements Container<NatedAddre
     public CroupierContainer<C> getCopy() {
         return new CroupierContainer(src, content, age);
     }
-    
+
     @Override
     public String toString() {
         return "<" + src + ":" + age + ">";

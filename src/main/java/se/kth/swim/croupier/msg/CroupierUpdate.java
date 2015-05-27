@@ -27,6 +27,7 @@ public class CroupierUpdate {
 
     public static class View<C extends Object> implements CroupierMsg.OneWay {
         public final C selfView;
+
         public View(C selfView) {
             this.selfView = selfView;
         }
@@ -36,9 +37,10 @@ public class CroupierUpdate {
             return "UPDATE_VIEW";
         }
     }
-    
-     public static class Address implements CroupierMsg.OneWay {
+
+    public static class Address implements CroupierMsg.OneWay {
         public final NatedAddress selfAddress;
+
         public Address(NatedAddress selfAddress) {
             this.selfAddress = selfAddress;
         }

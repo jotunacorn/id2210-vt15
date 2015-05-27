@@ -337,16 +337,17 @@ public class SwimScenario {
 
         return scen;
     }
+
     public static SimulationScenario withPeriodicNodeDeaths(final long seed,
-                                                    final int simulationLength,
-                                                    final int nodeCount,
-                                                    final int bootstrapSize,
-                                                    final boolean allowNat,
-                                                    final int natedNodeFraction,
-                                                    final int killSizeInterval,
+                                                            final int simulationLength,
+                                                            final int nodeCount,
+                                                            final int bootstrapSize,
+                                                            final boolean allowNat,
+                                                            final int natedNodeFraction,
+                                                            final int killSizeInterval,
                                                             final int totalKillSize,
-                                                    final int killInterval,
-                                                    final int failureAfter) {
+                                                            final int killInterval,
+                                                            final int failureAfter) {
         SwimScenario.seed = seed;
         SwimScenario.rand = new Random(seed);
         SwimScenario.simulationLength = simulationLength;

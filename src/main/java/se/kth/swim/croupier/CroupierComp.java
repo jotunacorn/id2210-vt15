@@ -1,30 +1,25 @@
 /**
  * This file is part of the Kompics P2P Framework.
- *
+ * <p>
  * Copyright (C) 2009 Swedish Institute of Computer Science (SICS) Copyright (C)
  * 2009 Royal Institute of Technology (KTH)
- *
+ * <p>
  * Kompics is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
  * details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 package se.kth.swim.croupier;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import se.kth.swim.croupier.internal.CroupierContainer;
@@ -36,24 +31,16 @@ import se.kth.swim.croupier.msg.CroupierJoin;
 import se.kth.swim.croupier.msg.CroupierSample;
 import se.kth.swim.croupier.msg.CroupierUpdate;
 import se.kth.swim.croupier.util.OverlayHeaderImpl;
-import se.sics.kompics.ComponentDefinition;
-import se.sics.kompics.Handler;
-import se.sics.kompics.Init;
-import se.sics.kompics.Negative;
-import se.sics.kompics.Positive;
-import se.sics.kompics.Start;
-import se.sics.kompics.Stop;
+import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.network.Transport;
-import se.sics.kompics.timer.CancelPeriodicTimeout;
-import se.sics.kompics.timer.CancelTimeout;
-import se.sics.kompics.timer.SchedulePeriodicTimeout;
-import se.sics.kompics.timer.ScheduleTimeout;
-import se.sics.kompics.timer.Timeout;
+import se.sics.kompics.timer.*;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicHeader;
+
+import java.util.*;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -182,7 +169,7 @@ public class CroupierComp extends ComponentDefinition {
             }
         }
     };
-    
+
     Handler<CroupierUpdate.View> handleUpdateView = new Handler<CroupierUpdate.View>() {
         @Override
         public void handle(CroupierUpdate.View update) {
@@ -204,7 +191,8 @@ public class CroupierComp extends ComponentDefinition {
         NatedAddress node = null;
         if (!publicView.isEmpty()) {
             node = publicView.selectPeerToShuffleWith(croupierConfig.policy, true, temperature);
-        } else if (!privateView.isEmpty()) {
+        }
+        else if (!privateView.isEmpty()) {
             node = privateView.selectPeerToShuffleWith(croupierConfig.policy, true, temperature);
         }
         return node;
@@ -247,7 +235,8 @@ public class CroupierComp extends ComponentDefinition {
 
             if (self.isOpen()) {
                 publicDescCopy.add(new CroupierContainer(self, selfView));
-            } else {
+            }
+            else {
                 privateDescCopy.add(new CroupierContainer(self, selfView));
             }
 
@@ -291,7 +280,8 @@ public class CroupierComp extends ComponentDefinition {
             Set<CroupierContainer> privateDescCopy = privateView.receiverCopySet(croupierConfig.shuffleSize, reqSrc);
             if (self.isOpen()) {
                 publicDescCopy.add(new CroupierContainer(self, selfView));
-            } else {
+            }
+            else {
                 privateDescCopy.add(new CroupierContainer(self, selfView));
             }
 
@@ -312,30 +302,30 @@ public class CroupierComp extends ComponentDefinition {
 
     Handler handleShuffleResponse = new Handler<CroupierShuffleNet.Response>() {
 
-                @Override
-                public void handle(CroupierShuffleNet.Response response) {
-                    OverlayHeaderImpl<NatedAddress> header = (OverlayHeaderImpl)response.getHeader();
-                    if (header.getOverlayId() != overlayId) {
+        @Override
+        public void handle(CroupierShuffleNet.Response response) {
+            OverlayHeaderImpl<NatedAddress> header = (OverlayHeaderImpl) response.getHeader();
+            if (header.getOverlayId() != overlayId) {
 //                        log.error("{} message with header:{} not belonging to croupier overlay:{}", new Object[]{logPrefix, header, overlayId});
-                        throw new RuntimeException("message not belonging to croupier overlay");
-                    }
-                    NatedAddress respSrc = response.getHeader().getSource();
-                    if (self.getBaseAdr().equals(respSrc.getBaseAdr())) {
+                throw new RuntimeException("message not belonging to croupier overlay");
+            }
+            NatedAddress respSrc = response.getHeader().getSource();
+            if (self.getBaseAdr().equals(respSrc.getBaseAdr())) {
 //                        log.error("{} Tried to shuffle with myself", logPrefix);
-                        throw new RuntimeException("tried to shuffle with myself");
-                    }
+                throw new RuntimeException("tried to shuffle with myself");
+            }
 //                    log.trace("{} received:{} from:{}", new Object[]{logPrefix, response, respSrc});
 
-                    if (shuffleTimeoutId == null) {
+            if (shuffleTimeoutId == null) {
 //                        log.debug("{} req:{}  already timed out", new Object[]{logPrefix, response.getContent().getId(), respSrc});
-                        return;
-                    }
+                return;
+            }
 
-                    publicView.selectToKeep(respSrc, response.getContent().publicNodes);
-                    privateView.selectToKeep(respSrc, response.getContent().privateNodes);
-                    cancelShuffleTimeout();
-                }
-            };
+            publicView.selectToKeep(respSrc, response.getContent().publicNodes);
+            privateView.selectToKeep(respSrc, response.getContent().privateNodes);
+            cancelShuffleTimeout();
+        }
+    };
 
     Handler<ShuffleTimeout> handleShuffleTimeout = new Handler<ShuffleTimeout>() {
         @Override
@@ -345,7 +335,8 @@ public class CroupierComp extends ComponentDefinition {
             shuffleTimeoutId = null;
             if (timeout.dest.isOpen()) {
                 publicView.timedOut(timeout.dest);
-            } else {
+            }
+            else {
                 privateView.timedOut(timeout.dest);
             }
         }

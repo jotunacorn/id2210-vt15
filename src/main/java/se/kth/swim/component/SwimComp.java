@@ -20,17 +20,19 @@ package se.kth.swim.component;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.swim.msg.parentport.NewParentAlert;
-import se.kth.swim.msg.parentport.ParentPort;
 import se.kth.swim.component.init.SwimInit;
 import se.kth.swim.msg.Pong;
 import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.*;
+import se.kth.swim.msg.parentport.NewParentAlert;
+import se.kth.swim.msg.parentport.ParentPort;
 import se.kth.swim.node.NodeHandler;
 import se.kth.swim.timeout.*;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
-import se.sics.kompics.timer.*;
+import se.sics.kompics.timer.CancelTimeout;
+import se.sics.kompics.timer.SchedulePeriodicTimeout;
+import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 

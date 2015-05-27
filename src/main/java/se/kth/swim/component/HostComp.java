@@ -19,27 +19,22 @@
 
 package se.kth.swim.component;
 
-import java.util.ArrayList;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.swim.msg.parentport.ParentPort;
+import se.kth.swim.component.init.NatTraversalInit;
+import se.kth.swim.component.init.SwimInit;
 import se.kth.swim.croupier.CroupierComp;
 import se.kth.swim.croupier.CroupierConfig;
 import se.kth.swim.croupier.CroupierPort;
 import se.kth.swim.croupier.util.OverlayFilter;
-import se.kth.swim.component.init.NatTraversalInit;
-import se.kth.swim.component.init.SwimInit;
-import se.sics.kompics.Component;
-import se.sics.kompics.ComponentDefinition;
-import se.sics.kompics.Handler;
-import se.sics.kompics.Init;
-import se.sics.kompics.Positive;
-import se.sics.kompics.Start;
-import se.sics.kompics.Stop;
+import se.kth.swim.msg.parentport.ParentPort;
+import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+
+import java.util.ArrayList;
+import java.util.Set;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -53,7 +48,7 @@ public class HostComp extends ComponentDefinition {
     private Positive<Timer> timer = requires(Timer.class);
 
     private final NatedAddress selfAddress;
-    
+
     private Component swim;
     private Component nat;
     private Component croupier;
@@ -64,26 +59,26 @@ public class HostComp extends ComponentDefinition {
         if (ENABLE_LOGGING) {
             log.info("{} initiating...", new Object[]{selfAddress});
         }
-        
+
         subscribe(handleStart, control);
         subscribe(handleStop, control);
-        
+
         int overlayId = 1; //so far we don' start multiple croupier overlay
         croupier = create(CroupierComp.class, new CroupierComp.CroupierInit(selfAddress, new ArrayList<NatedAddress>(init.bootstrapNodes), init.seed, init.croupierConfig, overlayId));
         connect(croupier.getNegative(Timer.class), timer);
         connect(croupier.getNegative(Network.class), network, new OverlayFilter(overlayId));
-        
+
         nat = create(NatTraversalComp.class, new NatTraversalInit(selfAddress, init.seed));
         connect(nat.getNegative(Timer.class), timer);
         connect(nat.getNegative(Network.class), network);
         connect(nat.getNegative(CroupierPort.class), croupier.getPositive(CroupierPort.class));
-        
+
         swim = create(SwimComp.class, new SwimInit(selfAddress, init.bootstrapNodes, init.aggregatorAddress, init.seed));
         connect(swim.getNegative(Timer.class), timer);
         connect(swim.getNegative(Network.class), nat.getPositive(Network.class));
         connect(swim.getNegative(ParentPort.class), nat.getPositive(ParentPort.class));
     }
-    
+
     private Handler<Start> handleStart = new Handler<Start>() {
 
         @Override

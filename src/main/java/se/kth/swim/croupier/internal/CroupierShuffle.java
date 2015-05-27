@@ -18,9 +18,10 @@
  */
 package se.kth.swim.croupier.internal;
 
+import se.sics.p2ptoolbox.util.identifiable.UUIDIdentifiable;
+
 import java.util.Set;
 import java.util.UUID;
-import se.sics.p2ptoolbox.util.identifiable.UUIDIdentifiable;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -37,27 +38,27 @@ public class CroupierShuffle {
             this.id = id;
             this.publicNodes = publicNodes;
             this.privateNodes = privateNodes;
-            if(publicNodes.size() > 128 || privateNodes.size() > 128) {
+            if (publicNodes.size() > 128 || privateNodes.size() > 128) {
                 throw new RuntimeException("Croupier shuffle message is too large - limit yourself to 128 public nodes and 128 private nodes per shuffle");
             }
         }
-        
+
         @Override
         public final UUID getId() {
             return id;
         }
     }
-    
+
     public static class Request extends Basic {
         public Request(UUID id, Set<CroupierContainer> publicNodes, Set<CroupierContainer> privateNodes) {
             super(id, publicNodes, privateNodes);
         }
-        
+
         @Override
         public String toString() {
             return "ShuffleRequest";
         }
-        
+
         @Override
         public int hashCode() {
             int hash = 7;
@@ -88,17 +89,17 @@ public class CroupierShuffle {
             return true;
         }
     }
-    
+
     public static class Response extends Basic {
         public Response(UUID id, Set<CroupierContainer> publicNodes, Set<CroupierContainer> privateNodes) {
             super(id, publicNodes, privateNodes);
         }
-        
+
         @Override
         public String toString() {
             return "ShuffleResponse";
         }
-        
+
         @Override
         public int hashCode() {
             int hash = 7;

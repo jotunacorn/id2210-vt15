@@ -26,21 +26,23 @@ import se.sics.kompics.network.Msg;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class OverlayFilter  extends ChannelFilter<Msg, Integer> {
-    
+public class OverlayFilter extends ChannelFilter<Msg, Integer> {
+
     public OverlayFilter(int overlayId) {
         super(Msg.class, overlayId, true);
     }
-    
+
     @Override
     public Integer getValue(Msg event) {
-        if(event instanceof CroupierShuffleNet.Request) {
-            CroupierShuffleNet.Request req = (CroupierShuffleNet.Request)event;
-            return ((OverlayHeaderImpl)req.getHeader()).getOverlayId();
-        } else if(event instanceof CroupierShuffleNet.Response) {
-            CroupierShuffleNet.Response resp = (CroupierShuffleNet.Response)event;
-            return ((OverlayHeaderImpl)resp.getHeader()).getOverlayId();
-        } else {
+        if (event instanceof CroupierShuffleNet.Request) {
+            CroupierShuffleNet.Request req = (CroupierShuffleNet.Request) event;
+            return ((OverlayHeaderImpl) req.getHeader()).getOverlayId();
+        }
+        else if (event instanceof CroupierShuffleNet.Response) {
+            CroupierShuffleNet.Response resp = (CroupierShuffleNet.Response) event;
+            return ((OverlayHeaderImpl) resp.getHeader()).getOverlayId();
+        }
+        else {
             return null;
         }
     }

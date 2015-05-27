@@ -20,8 +20,6 @@ package se.kth.swim.component;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.swim.msg.parentport.NewParentAlert;
-import se.kth.swim.msg.parentport.ParentPort;
 import se.kth.swim.component.init.NatTraversalInit;
 import se.kth.swim.croupier.CroupierPort;
 import se.kth.swim.croupier.msg.CroupierSample;
@@ -29,6 +27,8 @@ import se.kth.swim.croupier.util.Container;
 import se.kth.swim.msg.net.NetMsg;
 import se.kth.swim.msg.net.NetNatPing;
 import se.kth.swim.msg.net.NetNatPong;
+import se.kth.swim.msg.parentport.NewParentAlert;
+import se.kth.swim.msg.parentport.ParentPort;
 import se.kth.swim.simulation.SwimScenario;
 import se.kth.swim.timeout.HeartbeatTimeout;
 import se.kth.swim.timeout.NatPingTimeout;

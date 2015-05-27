@@ -24,6 +24,7 @@ package se.kth.swim.croupier.msg;
  */
 public class CroupierDisconnected implements CroupierMsg.OneWay {
     public final int overlayId;
+
     public CroupierDisconnected(int overlayId) {
         this.overlayId = overlayId;
     }

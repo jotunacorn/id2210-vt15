@@ -10,7 +10,7 @@ public class NatPong {
         return pingNr;
     }
 
-    public NatPong(int pingNr){
+    public NatPong(int pingNr) {
         this.pingNr = pingNr;
     }
 }

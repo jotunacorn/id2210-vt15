@@ -21,7 +21,6 @@ package se.kth.swim.croupier.util;
 
 import se.sics.kompics.network.Address;
 import se.sics.kompics.network.Transport;
-import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.OverlayHeader;
 import se.sics.p2ptoolbox.util.network.impl.BasicHeader;
 
@@ -31,12 +30,12 @@ import se.sics.p2ptoolbox.util.network.impl.BasicHeader;
 public class OverlayHeaderImpl<Adr extends Address> implements OverlayHeader<Adr> {
     private final BasicHeader<Adr> base;
     private final int overlayId;
-    
+
     public OverlayHeaderImpl(BasicHeader<Adr> base, int overlayId) {
         this.base = base;
         this.overlayId = overlayId;
     }
-    
+
     public int getOverlayId() {
         return overlayId;
     }

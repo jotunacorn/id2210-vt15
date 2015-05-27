@@ -41,5 +41,4 @@ public class NetPing extends NetMsg<Ping> {
     }
 
 
-
 }

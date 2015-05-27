@@ -1,36 +1,30 @@
 /**
  * This file is part of the Kompics P2P Framework.
- *
+ * <p>
  * Copyright (C) 2009 Swedish Institute of Computer Science (SICS) Copyright (C)
  * 2009 Royal Institute of Technology (KTH)
- *
+ * <p>
  * Kompics is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
  * details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 package se.kth.swim.croupier.internal;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
 import se.kth.swim.croupier.CroupierSelectionPolicy;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
+
+import java.util.*;
 
 /**
  * @author Alex Ormenisan <aaor@sics.se>
@@ -47,9 +41,11 @@ public class CroupierView<C extends Object> {
         public int compare(CroupierViewEntry o1, CroupierViewEntry o2) {
             if (o1.getDescriptor().getAge() > o2.getDescriptor().getAge()) {
                 return 1;
-            } else if (o1.getDescriptor().getAge() < o2.getDescriptor().getAge()) {
+            }
+            else if (o1.getDescriptor().getAge() < o2.getDescriptor().getAge()) {
                 return -1;
-            } else {
+            }
+            else {
                 return 0;
             }
         }
@@ -70,7 +66,7 @@ public class CroupierView<C extends Object> {
     }
 
     public NatedAddress selectPeerToShuffleWith(CroupierSelectionPolicy policy,
-            boolean softmax, double temperature) {
+                                                boolean softmax, double temperature) {
         if (d2e.isEmpty()) {
             return null;
         }
@@ -121,7 +117,7 @@ public class CroupierView<C extends Object> {
         List<CroupierViewEntry> randomEntries = generateRandomSample(count);
         Set<CroupierContainer<C>> descriptors = new HashSet<CroupierContainer<C>>();
         for (CroupierViewEntry cacheEntry : randomEntries) {
-            cacheEntry.sentTo((BasicAddress)destinationPeer.getBaseAdr());
+            cacheEntry.sentTo((BasicAddress) destinationPeer.getBaseAdr());
             descriptors.add(cacheEntry.getDescriptor().getCopy());
         }
         return descriptors;
@@ -131,14 +127,14 @@ public class CroupierView<C extends Object> {
         List<CroupierViewEntry> randomEntries = generateRandomSample(count);
         Set<CroupierContainer<C>> descriptors = new HashSet<CroupierContainer<C>>();
         for (CroupierViewEntry cacheEntry : randomEntries) {
-            cacheEntry.sentTo((BasicAddress)destinationPeer.getBaseAdr());
+            cacheEntry.sentTo((BasicAddress) destinationPeer.getBaseAdr());
             descriptors.add(cacheEntry.getDescriptor().getCopy());
         }
         return descriptors;
     }
 
     public void selectToKeep(NatedAddress from, Set<CroupierContainer<C>> descriptors) {
-        BasicAddress baseFrom = (BasicAddress)from.getBaseAdr();
+        BasicAddress baseFrom = (BasicAddress) from.getBaseAdr();
         if (baseFrom.equals(selfAddress)) {
             return;
         }
@@ -155,7 +151,7 @@ public class CroupierView<C extends Object> {
         }
 
         for (CroupierContainer<C> descriptor : descriptors) {
-            BasicAddress baseSrc = (BasicAddress)descriptor.getSource().getBaseAdr();
+            BasicAddress baseSrc = (BasicAddress) descriptor.getSource().getBaseAdr();
             if (selfAddress.equals(baseSrc)) {
                 continue; // do not keep descriptor of self
             }
@@ -176,21 +172,23 @@ public class CroupierView<C extends Object> {
                     removeEntry(baseSrc);
                     addEntry(newCVE);
                 }
-            } else if (d2e.size() < viewSize) {
+            }
+            else if (d2e.size() < viewSize) {
                 // fill an empty slot
                 addEntry(new CroupierViewEntry(descriptor));
-            } else {
+            }
+            else {
                 // replace one slot out of those sent to this peer
                 CroupierViewEntry sentEntry = entriesSentToThisPeer.poll();
                 if (sentEntry != null) {
-                    removeEntry((BasicAddress)sentEntry.getDescriptor().getSource().getBaseAdr());
+                    removeEntry((BasicAddress) sentEntry.getDescriptor().getSource().getBaseAdr());
                     addEntry(new CroupierViewEntry(descriptor));
                 }
             }
         }
     }
 
-//-------------------------------------------------------------------	
+    //-------------------------------------------------------------------
     public final Set<CroupierContainer<C>> getAllCopy() {
         Set<CroupierContainer<C>> descriptors = new HashSet<CroupierContainer<C>>();
         for (CroupierViewEntry cacheEntry : d2e.values()) {
@@ -215,7 +213,8 @@ public class CroupierView<C extends Object> {
                 randomEntries.add(entries.get(t));
                 m += 1;
                 t += 1;
-            } else {
+            }
+            else {
                 t += 1;
             }
         }
@@ -223,7 +222,7 @@ public class CroupierView<C extends Object> {
     }
 
     private void addEntry(CroupierViewEntry entry) {
-        d2e.put((BasicAddress)entry.getDescriptor().getSource().getBaseAdr(), entry);
+        d2e.put((BasicAddress) entry.getDescriptor().getSource().getBaseAdr(), entry);
     }
 
     private boolean removeEntry(BasicAddress src) {
@@ -231,7 +230,7 @@ public class CroupierView<C extends Object> {
     }
 
     public void timedOut(NatedAddress src) {
-        removeEntry((BasicAddress)src.getBaseAdr());
+        removeEntry((BasicAddress) src.getBaseAdr());
     }
 
     public boolean isEmpty() {
