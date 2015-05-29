@@ -38,7 +38,7 @@ public class SwimMain {
 
     private static final int NUMBER_OF_NODES = 50; //Number of nodes in the simulation.
     private static final int BOOTSTRAP_SIZE = 2; //Number of bootstrap nodes. (Parent count in NATED nodes is of this size too.)
-    private static final boolean ALLOW_NAT = false; //Set to true if NATED nodes should be allowed.
+    private static final boolean ALLOW_NAT = true; //Set to true if NATED nodes should be allowed.
     private static final int NATED_NODE_FRACTION = 4; //Set ratio of nated nodes. Value here will set every Nth node as nated. 2 = 50%, 3=33% ...
 
     private static final int KILL_SIZE = 20; //How many nodes to kill in total.
@@ -63,7 +63,7 @@ public class SwimMain {
         }
 
         //Generic test cases. Specify parameters in the constants above.
-        LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
+        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION);
         //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, KILL_INTERVAL, FAILURE_AFTER);
         //LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, SIMULATION_LENGTH, NUMBER_OF_NODES, BOOTSTRAP_SIZE, ALLOW_NAT, NATED_NODE_FRACTION, KILL_SIZE, FAILURE_AFTER);
 
@@ -74,7 +74,7 @@ public class SwimMain {
         //Tests with for startup with different number of nodes. Message size is set in SwimComp.java
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 10, 2, false, 1);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 20, 2, false, 1);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 50, 2, false, 1);
+        LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 50, 2, false, 1);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 100, 2, false, 1);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 200, 2, false, 1);
 
