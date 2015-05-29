@@ -129,49 +129,51 @@ public class AggregatorComp extends ComponentDefinition {
 
         //Loop through all status numbers (rounds)
         for (int statusNr : statuses.keySet()) {
-                Map<Address, Status> statusesForNr = statuses.get(statusNr);
+            Map<Address, Status> statusesForNr = statuses.get(statusNr);
 
-                Set<Address> allAliveNodes = new HashSet<>();
-                Set<Address> commonAliveNodes = null;
+            Set<Address> allAliveNodes = new HashSet<>();
+            Set<Address> commonAliveNodes = null;
 
-                int nrOfDisconnectedNodes = 0;
-                //For every status, in the round...
-                for (Address address : statusesForNr.keySet()) {
-                    Status status = statusesForNr.get(address);
+            int nrOfDisconnectedNodes = 0;
+            //For every status, in the round...
+            for (Address address : statusesForNr.keySet()) {
+                Status status = statusesForNr.get(address);
 
 
-                    //Add the sender node to their own alive nodes list. This is important for the convergence calculation.
-                    NatedAddress natedAddress = new BasicNatedAddress((BasicAddress) address);
+                //Add the sender node to their own alive nodes list. This is important for the convergence calculation.
+                NatedAddress natedAddress = new BasicNatedAddress((BasicAddress) address);
 
-                    status.getAliveNodes().put(natedAddress, 0);
+                status.getAliveNodes().put(natedAddress, 0);
 
-                    //Add all alive nodes to a set
-                    allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
+                //Add all alive nodes to a set
+                allAliveNodes.addAll(convertToAddress(status.getAliveNodes().keySet()));
 
-                    if (status.getAliveNodes().isEmpty()) {
-                        nrOfDisconnectedNodes++;
-                        System.out.println("Node nr " + ((BasicAddress) address).getId() + " doesn't have any alive nodes!");
-                    } else {
-                        //Get the common alive nodes from all nodes.
-                        if (commonAliveNodes == null) {
-                            commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
-                        } else {
-                            commonAliveNodes.retainAll(convertToAddress(status.getAliveNodes().keySet()));
-                        }
+                if (status.getAliveNodes().isEmpty()) {
+                    nrOfDisconnectedNodes++;
+                    System.out.println("Node nr " + ((BasicAddress) address).getId() + " doesn't have any alive nodes!");
+                }
+                else {
+                    //Get the common alive nodes from all nodes.
+                    if (commonAliveNodes == null) {
+                        commonAliveNodes = new HashSet<>(convertToAddress(status.getAliveNodes().keySet()));
                     }
-
+                    else {
+                        commonAliveNodes.retainAll(convertToAddress(status.getAliveNodes().keySet()));
+                    }
                 }
 
-                //The convergence is calculated as common nodes divided by total nodes in the system.
-                //If all nodes have all other (alive) nodes in their alive lists, the convergence rate will be 1.
-                double convergenceRate = Math.max(((double) (commonAliveNodes.size() - nrOfDisconnectedNodes) / (double) Math.max(1, allAliveNodes.size())), 0);
+            }
 
-                if (convergenceRate > 1) { //Invert it if it's higher than 1. A value higher than 1 means that the number of nodes stored in the alive lists is higher than the actual number of alive nodes.
-                    convergenceRate = 1 / convergenceRate;
-                }
+            //The convergence is calculated as common nodes divided by total nodes in the system.
+            //If all nodes have all other (alive) nodes in their alive lists, the convergence rate will be 1.
+            double convergenceRate = Math.max(((double) (commonAliveNodes.size() - nrOfDisconnectedNodes) / (double) Math.max(1, allAliveNodes.size())), 0);
 
-                log.info("Number of alive nodes: " + commonAliveNodes.size() + ", Number of alive nodes: " + allAliveNodes.size());
-                convergenceByStatusNr.put(statusNr, convergenceRate);
+            if (convergenceRate > 1) { //Invert it if it's higher than 1. A value higher than 1 means that the number of nodes stored in the alive lists is higher than the actual number of alive nodes.
+                convergenceRate = 1 / convergenceRate;
+            }
+
+            log.info("Number of alive nodes: " + commonAliveNodes.size() + ", Number of alive nodes: " + allAliveNodes.size());
+            convergenceByStatusNr.put(statusNr, convergenceRate);
         }
 
         for (int statusNr : convergenceByStatusNr.keySet()) {
