@@ -321,7 +321,7 @@ public class NodeHandler {
 
             //If node was propagated enough times, remove it from the send buffer.
             if (nodeInfo.getSendCounter() > SwimComp.LAMBDA * Math.max(1, Math.log(Math.max(1, aliveNodes.size())))) {
-                sendBuffer.remove(nodeInfo.getAddress());
+                sendBuffer.remove(nodeInfo.getAddress().getBaseAdr());
             }
 
             messageSizeCounter++;
@@ -350,8 +350,6 @@ public class NodeHandler {
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
                 }
-
-
             }
         }
         return natedAddresses;
