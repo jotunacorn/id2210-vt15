@@ -74,17 +74,17 @@ public class SwimMain {
         //Tests with for startup with different number of nodes. Message size is set in SwimComp.java
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 10, 2, false, 1);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 20, 2, false, 1);
-        //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 50, 2, false, 1);
+        LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 50, 2, false, 1);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 100, 2, false, 1);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 200, 2, false, 1);
 
-        //Test for killing 20 nodes out of 50 (40%, message size is set in SwimComp.java)
-        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, false, 1, 20, 0, 150);
+        //Test for killing 10 nodes out of 50 (20%, message size is set in SwimComp.java)
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, false, 1, 10, 0, 150);
 
         //Test for Churn killing 1 node every 10 iterations
         //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, false, 1, 20, 10, 150);
 
-        //Test with link deaths, killing 20 links
+        //Test with link deaths, killing 100 links
         //LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, 100, 50, 2, false, 1, 100, 50);
 
         /**
@@ -98,14 +98,14 @@ public class SwimMain {
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 100, 2, true, 2);
         //LauncherComp.scenario = SwimScenario.simpleBoot(seed, 100, 200, 2, true, 2);
 
-        //Test for killing 20 nodes out of 50 (40%, message size is set in SwimComp.java)
-        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 2, true, 2, 20, 0, 150);
+        //Test for killing 10 nodes out of 50 (20%, message size is set in SwimComp.java)
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, true, 2, 10, 0, 150);
 
         //Test for Churn killing 1 node every 10 iterations
-        LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, true, 2, 20, 10, 150);
+        //LauncherComp.scenario = SwimScenario.withNodeDeaths(seed, 250, 50, 4, true, 2, 20, 10, 150);
 
-        //Test with link deaths, killing 20 links
-        //LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, 100, 50, 2, true, 2, 20, 50);
+        //Test with link deaths, killing 100 links
+        //LauncherComp.scenario = SwimScenario.withLinkDeaths(seed, 250, 50, 2, true, 2, 0, 50);
 
         try {
             LauncherComp.simulatorClientAddress = new BasicNatedAddress(new BasicAddress(InetAddress.getByName("127.0.0.1"), 30000, -1));
